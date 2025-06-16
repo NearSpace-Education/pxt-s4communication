@@ -71,3 +71,5 @@ class S4comms:
             packet2 = constructPacket(id, temp2, data1, data2, data3)
             radio.send_buffer(packet2)
             intervalTime = input.running_time()
+
+    
