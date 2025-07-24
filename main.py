@@ -42,7 +42,6 @@ class S4comms:
     """
     # % block="init with id $id sending every $frequency ms"
     # % weight=90
-    # % group="Radio"
     # % inlineInputMode=inline
     def init(id: number, frequency: number):
         global payloadInterval, student_id
@@ -63,7 +62,6 @@ class S4comms:
     """
     # % block="request downlink with id $id temp $temp data1 $data1 data2 $data2 data3 $data3"
     # % weight=90
-    # % group="Radio"
     # % inlineInputMode=inline
     def downlink(id: number, temp2: number, data1: number, data2: number, data3: number):
         global intervalTime

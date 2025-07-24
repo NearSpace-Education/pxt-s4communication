@@ -3,8 +3,7 @@
     "description": "makeCode extension for student payloads to interact with the S4 radio",
     "dependencies": {
         "core": "*",
-        "radio": "*",
-        "microphone": "*"
+        "radio": "*"
     },
     "files": [
         "main.ts",
