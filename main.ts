@@ -127,7 +127,7 @@ namespace S4comms {
      * bits 3-7: student_id (0-31)
      */
     function createId(type: PacketType, id: number) : number {
-        return ((id << 3) & 0x1F) | (type & 0x7);
+        return (id & 0x1F) | ((type & 0x7) << 5);
     }
 
     /**
