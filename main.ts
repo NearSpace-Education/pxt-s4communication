@@ -115,7 +115,7 @@ namespace S4comms {
         data1 - clampInt32(data1)
         data2 - clampInt32(data2)
 
-        //
+        // fill buffer
         packet.setNumber(NumberFormat.UInt8BE, 0, id)
         packet.setNumber(NumberFormat.Int8BE, 1, temp)
         packet.setNumber(NumberFormat.Int32BE, 2, data1)
