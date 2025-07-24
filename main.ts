@@ -9,8 +9,6 @@
 //% blockCombine
 //% blockNamespace="S4comms"
 enum Moons {
-    None = 0,
-
     // Mars
     Phobos = 1,
     Deimos = 2,
@@ -50,9 +48,6 @@ enum Moons {
     Larissa = 28,
     Despina = 29,
     Galatea = 30,
-
-    // Pluto
-    Charon = 31
 }
 
 //% color="#4beb36"
@@ -108,7 +103,7 @@ namespace S4comms {
      * 
      */
     function constructPacket(id: number, temp: number, data1: number, data2: number): Buffer {
-        let packet = pins.createBuffer(8)
+        let packet = pins.createBuffer(10)
 
         id = createId(0, id) //add type data
 
@@ -141,7 +136,7 @@ namespace S4comms {
      */
     //% block="start as Team $id"
     //% id.defl=Phobos
-    //% weight=90
+    //% weight=91
     //% group="Basic"
     //% inlineInputMode=inline
     export function initTeam(id : Moons) {
@@ -161,7 +156,7 @@ namespace S4comms {
      * @param id Payload identifier (0–31) 5 bits
      */
     //% block="start with id $id (0-31)"
-    //% weight=80
+    //% weight=81
     //% group="Advanced"
     //% inlineInputMode=inline
     export function initNumber(id : number) {
