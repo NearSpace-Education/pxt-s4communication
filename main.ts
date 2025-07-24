@@ -8,7 +8,7 @@
  */
 //% blockCombine
 //% blockNamespace="S4comms"
-export enum Moons {
+enum Moons {
     None = 0,
 
     // Mars
