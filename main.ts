@@ -3,6 +3,58 @@
  * by MakeCode
  */
 
+/**
+ * Silly moon names for better parsing
+ */
+//% blockCombine
+//% blockNamespace="S4comms"
+export enum Moons {
+    None = 0,
+
+    // Mars
+    Phobos = 1,
+    Deimos = 2,
+
+    // Jupiter
+    Io = 3,
+    Europa = 4,
+    Ganymede = 5,
+    Callisto = 6,
+    Amalthea = 7,
+    Himalia = 8,
+    Elara = 9,
+
+    // Saturn
+    Mimas = 10,
+    Enceladus = 11,
+    Tethys = 12,
+    Dione = 13,
+    Rhea = 14,
+    Titan = 15,
+    Hyperion = 16,
+    Iapetus = 17,
+    Phoebe = 18,
+    Janus = 19,
+
+    // Uranus
+    Miranda = 20,
+    Ariel = 21,
+    Umbriel = 22,
+    Titania = 23,
+    Oberon = 24,
+
+    // Neptune
+    Triton = 25,
+    Nereid = 26,
+    Proteus = 27,
+    Larissa = 28,
+    Despina = 29,
+    Galatea = 30,
+
+    // Pluto
+    Charon = 31
+}
+
 //% color="#4beb36"
 namespace S4comms {
     let default_channel = 7
@@ -12,56 +64,6 @@ namespace S4comms {
     let minPayloadInterval = 30000 //so students cant accidently spam any faster than this
     //let packetType = 0
     let intervalTime = input.runningTime()
-
-    /**
-     * silly moon names for better parsing
-     */
-    enum Moons {
-        None = 0,
-
-        // Mars
-        Phobos = 1,
-        Deimos = 2,
-
-        // Jupiter
-        Io = 3,
-        Europa = 4,
-        Ganymede = 5,
-        Callisto = 6,
-        Amalthea = 7,
-        Himalia = 8,
-        Elara = 9,
-
-        // Saturn
-        Mimas = 10,
-        Enceladus = 11,
-        Tethys = 12,
-        Dione = 13,
-        Rhea = 14,
-        Titan = 15,
-        Hyperion = 16,
-        Iapetus = 17,
-        Phoebe = 18,
-        Janus = 19,
-
-        // Uranus
-        Miranda = 20,
-        Ariel = 21,
-        Umbriel = 22,
-        Titania = 23,
-        Oberon = 24,
-
-        // Neptune
-        Triton = 25,
-        Nereid = 26,
-        Proteus = 27,
-        Larissa = 28,
-        Despina = 29,
-        Galatea = 30,
-
-        // Pluto
-        Charon = 31
-    }
 
     enum PacketType {
         Basic = 0, // int8 , int32, int32
@@ -138,6 +140,7 @@ namespace S4comms {
      * @param id Payload identifier --> Team Name
      */
     //% block="start as Team $id"
+    //% id.defl=Phobos
     //% weight=90
     //% group="Basic"
     //% inlineInputMode=inline
