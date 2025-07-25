@@ -1,6 +1,7 @@
 {
     "name": "S4communicaton",
     "description": "makeCode extension for student payloads to interact with the S4 radio",
+    "icon": "icon.png",
     "dependencies": {
         "core": "*",
         "radio": "*"

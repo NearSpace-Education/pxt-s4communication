@@ -1,6 +1,6 @@
 /**
  * These should be the blocks required for students to interact with the s4
- * by MakeCode
+ * by levi morris
  */
 
 /**
@@ -51,15 +51,15 @@ enum Moons {
 }
 
 //% color="#4beb36"
-namespace S4comms {
+namespace balloonNSE {
     let default_channel = 7
     let default_group = 23 
     let default_power = 7
     let student_id = 0x00
     let minPayloadInterval = 30000 //so students can't accidently spam any faster than this
-    //let packetType = 0
     let intervalTime = input.runningTime()
 
+    //no clue how to name these
     enum PacketType {
         Basic = 0, // int8 , int32, int32
         FlexBasic = 1, //int8, int16, int16, int32
@@ -123,6 +123,7 @@ namespace S4comms {
         id = createId(type, id); // combine packetType and student_id
         packet.setNumber(NumberFormat.UInt8BE, 0, id);
 
+        // all the diff types of packet yo
         switch (type) {
             case PacketType.Basic:
                 if (data.length !== 3) return packet;
@@ -207,15 +208,15 @@ namespace S4comms {
     //% group="Basic"
     //% inlineInputMode=inline
     export function initTeam(id : Moons) {
-        intervalTime = input.runningTime()
+        intervalTime = input.runningTime();
 
-        student_id = id
+        student_id = id;
 
-        radio.setTransmitPower(default_power)
-        radio.setGroup(default_group)
-        radio.setFrequencyBand(default_channel)
-        radio.setTransmitSerialNumber(false)
-        radio.on()
+        radio.setTransmitPower(default_power);
+        radio.setGroup(default_group);
+        radio.setFrequencyBand(default_channel);
+        radio.setTransmitSerialNumber(false);
+        radio.on();
     }
 
     /**
@@ -223,21 +224,21 @@ namespace S4comms {
      * @param id Payload identifier (0–31) 5 bits
      */
     //% block="start with id $id (0-31)"
-    //% weight=81
+    //% weight=91
     //% group="Advanced"
     //% inlineInputMode=inline
     export function initNumber(id : number) {
-        intervalTime = input.runningTime()
+        intervalTime = input.runningTime();
 
         //enforce id limits
         if (id < 0) {id *= -1}
-        student_id = id % 32
+        student_id = id % 32;
 
-        radio.setTransmitPower(default_power)
-        radio.setGroup(default_group)
-        radio.setFrequencyBand(default_channel)
-        radio.setTransmitSerialNumber(false)
-        radio.on()
+        radio.setTransmitPower(default_power);
+        radio.setGroup(default_group);
+        radio.setFrequencyBand(default_channel);
+        radio.setTransmitSerialNumber(false);
+        radio.on();
     }
 
     /**
@@ -253,10 +254,10 @@ namespace S4comms {
     export function downlinkBasic(temp: number, data1: number, data2: number) {
 
         if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const packet = constructPacket(PacketType.Basic, student_id, [temp, data1, data2])
-            radio.sendBuffer(packet)
+            const packet = constructPacket(PacketType.Basic, student_id, [temp, data1, data2]);
+            radio.sendBuffer(packet);
 
-            intervalTime = input.runningTime()
+            intervalTime = input.runningTime();
         }
         
     }
@@ -266,8 +267,8 @@ namespace S4comms {
     export function downlinkFlexBasic(int8: number, short1: number, short2: number, intVal: number) {
         if (input.runningTime() - intervalTime >= minPayloadInterval) {
             const packet = constructPacket(PacketType.FlexBasic, student_id, [int8, short1, short2, intVal])
-            radio.sendBuffer(packet)
-            intervalTime = input.runningTime()
+            radio.sendBuffer(packet);
+            intervalTime = input.runningTime();
         }
     }
 
@@ -275,23 +276,23 @@ namespace S4comms {
     //% weight=90 group="Advanced" inlineInputMode=inline
     export function downlinkExtendedBasic(int8: number, s1: number, s2: number, s3: number, s4: number) {
         if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const packet = constructPacket(PacketType.ExtendedBasic, student_id, [int8, s1, s2, s3, s4])
-            radio.sendBuffer(packet)
-            intervalTime = input.runningTime()
+            const packet = constructPacket(PacketType.ExtendedBasic, student_id, [int8, s1, s2, s3, s4]);
+            radio.sendBuffer(packet);
+            intervalTime = input.runningTime();
         }
     }
 
-    //% block="request downlink with byte $int8 float1 $data1 float2 $data2"
+    //% block="request downlink with byte $int8 float1 $float1 float2 $float2"
     //% weight=90
     //% group="Advanced"
     //% inlineInputMode=inline
     export function downlinkFloat(int8: number, float1: number, float2: number) {
 
         if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const packet = constructPacket(PacketType.Float, student_id, [int8, float1, float2])
-            radio.sendBuffer(packet)
+            const packet = constructPacket(PacketType.Float, student_id, [int8, float1, float2]);
+            radio.sendBuffer(packet);
 
-            intervalTime = input.runningTime()
+            intervalTime = input.runningTime();
         }
         
     }
@@ -300,9 +301,9 @@ namespace S4comms {
     //% weight=90 group="Advanced" inlineInputMode=inline
     export function downlinkBalanced(int8: number, intVal: number, floatVal: number) {
         if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const packet = constructPacket(PacketType.Balanced, student_id, [int8, intVal, floatVal])
-            radio.sendBuffer(packet)
-            intervalTime = input.runningTime()
+            const packet = constructPacket(PacketType.Balanced, student_id, [int8, intVal, floatVal]);
+            radio.sendBuffer(packet);
+            intervalTime = input.runningTime();
         }
     }
 
@@ -310,9 +311,9 @@ namespace S4comms {
     //% weight=90 group="Advanced" inlineInputMode=inline
     export function downlinkBetterBalance(int8: number, s1: number, s2: number, f: number) {
         if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const packet = constructPacket(PacketType.BetterBalance, student_id, [int8, s1, s2, f])
-            radio.sendBuffer(packet)
-            intervalTime = input.runningTime()
+            const packet = constructPacket(PacketType.BetterBalance, student_id, [int8, s1, s2, f]);
+            radio.sendBuffer(packet);
+            intervalTime = input.runningTime();
         }
     }
 
@@ -320,10 +321,10 @@ namespace S4comms {
     //% weight=90 group="Advanced" inlineInputMode=inline
     export function downlinkSilly(f: number, str: string) {
         if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const chars: number[] = (str.split("").map(c => c.charCodeAt(0))).slice(0,5)
-            const packet = constructPacket(PacketType.Silly, student_id, chars)
-            radio.sendBuffer(packet)
-            intervalTime = input.runningTime()
+            const chars: number[] = (str.split("").map(c => c.charCodeAt(0))).slice(0, 5);
+            const packet = constructPacket(PacketType.Silly, student_id, chars);
+            radio.sendBuffer(packet);
+            intervalTime = input.runningTime();
         }
     }
 
@@ -331,12 +332,10 @@ namespace S4comms {
     //% weight=90 group="Advanced" inlineInputMode=inline
     export function downlinkString(str: string) {
         if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const chars: number[] = (str.split("").map(c => c.charCodeAt(0))).slice(0,9)
-            const packet = constructPacket(PacketType.String, student_id, chars)
-            radio.sendBuffer(packet)
-            intervalTime = input.runningTime()
+            const chars: number[] = (str.split("").map(c => c.charCodeAt(0))).slice(0, 9);
+            const packet = constructPacket(PacketType.String, student_id, chars);
+            radio.sendBuffer(packet);
+            intervalTime = input.runningTime();
         }
     }
-
-
 }
