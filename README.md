@@ -150,3 +150,15 @@ Values are automatically clamped to valid ranges to ensure packet integrity.
 ## Example Usage
 
 ![make code blocks](example.png)
+
+
+
+## [Slide Guide](https://docs.google.com/presentation/d/1hMdmafFlc-lLIqcJOhETRY5BsjdJvocBKo3NrH4bV4w/edit?usp=sharing)
+
+- A full guide describing how to use this library and 
+- Epxlaining some of the basics for how the whole thing works
+
+## [Sister microPython Library](https://github.com/NearSpace-Education/s4communication)
+
+- The same library adapted for use with [microPython](https://python.microbit.org/v/3)
+- Contains a "How to parse" file which could be useful to more advanced users

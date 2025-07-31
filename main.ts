@@ -262,11 +262,11 @@ namespace balloonNSE {
         
     }
 
-    //% block="request downlink with byte $int8 short1 $short1 short2 $short2 int $int"
+    //% block="request downlink with byte $int8 short1 $short1 short2 $short2 int $int32"
     //% weight=90 group="Advanced" inlineInputMode=inline
-    export function downlinkFlexBasic(int8: number, short1: number, short2: number, intVal: number) {
+    export function downlinkFlexBasic(int8: number, short1: number, short2: number, int32: number) {
         if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const packet = constructPacket(PacketType.FlexBasic, student_id, [int8, short1, short2, intVal])
+            const packet = constructPacket(PacketType.FlexBasic, student_id, [int8, short1, short2, int32])
             radio.sendBuffer(packet);
             intervalTime = input.runningTime();
         }
