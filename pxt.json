@@ -1,24 +1,20 @@
 {
-    "name": "NearSpace Balloon",
-    "description": "makeCode extension for student payloads to interact with the S4 radio",
-    "icon": "icon.png",
-    "dependencies": {
-        "core": "*",
-        "radio": "*"
-    },
-    "files": [
-        "main.ts",
-        "README.md"
-    ],
-    "testFiles": [
-        "test.ts"
-    ],
-    "targetVersions": {
-        "target": "7.0.61",
-        "targetId": "microbit"
-    },
-    "supportedTargets": [
-        "microbit"
-    ],
-    "preferredEditor": "tsprj"
+  "name": "s4comm",
+  "version": "0.0.1",
+  "description": "Send S4 payload packets from micro:bit using MakeCode blocks.",
+  "license": "MIT",
+  "dependencies": {
+    "core": "*"
+  },
+  "files": [
+    "main.ts"
+  ],
+  "testFiles": [
+    "test.ts"
+  ],
+  "public": true,
+  "supportedTargets": [
+    "microbit"
+  ],
+  "preferredEditor": "blocksprj"
 }

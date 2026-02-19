@@ -1,341 +1,175 @@
 /**
- * These should be the blocks required for students to interact with the s4
- * by levi morris
+ * S4 communication helpers for MakeCode.
+ * Packet format is 11 bytes:
+ * [0] microbit_id, [1] packed team/type id, [2..10] payload.
  */
-
-/**
- * Silly moon names for better parsing
- */
-//% blockCombine
-//% blockNamespace="S4comms"
-enum Moons {
-    // Mars
-    Phobos = 1,
-    Deimos = 2,
-
-    // Jupiter
-    Io = 3,
-    Europa = 4,
-    Ganymede = 5,
-    Callisto = 6,
-    Amalthea = 7,
-    Himalia = 8,
-    Elara = 9,
-
-    // Saturn
-    Mimas = 10,
-    Enceladus = 11,
-    Tethys = 12,
-    Dione = 13,
-    Rhea = 14,
-    Titan = 15,
-    Hyperion = 16,
-    Iapetus = 17,
-    Phoebe = 18,
-    Janus = 19,
-
-    // Uranus
-    Miranda = 20,
-    Ariel = 21,
-    Umbriel = 22,
-    Titania = 23,
-    Oberon = 24,
-
-    // Neptune
-    Triton = 25,
-    Nereid = 26,
-    Proteus = 27,
-    Larissa = 28,
-    Despina = 29,
-    Galatea = 30,
-}
-
-//% color="#4beb36"
-namespace balloonNSE {
-    let default_channel = 7
-    let default_group = 23 
-    let default_power = 7
-    let student_id = 0x00
-    let minPayloadInterval = 30000 //so students can't accidently spam any faster than this
-    let intervalTime = input.runningTime()
-
-    //no clue how to name these
-    enum PacketType {
-        Basic = 0, // int8 , int32, int32
-        FlexBasic = 1, //int8, int16, int16, int32
-        ExtendedBasic = 2, //int8, int16, int16, in16, int16
-        Float = 3, // int8, float32, float32
-        Balanced = 4, // int8, int32, float32
-        BetterBalance = 5, //int8, int16, int16, float32
-        Silly = 6, //float32, char * 5
-        String = 7 // char * 9
+namespace s4comm {
+    export enum PacketType {
+        Basic = 0,
+        FlexBasic = 1,
+        ExtendedBasic = 2,
+        Float = 3,
+        Balanced = 4,
+        BetterBalance = 5,
+        Silly = 6,
+        String = 7
     }
 
-    /**
-     * convert any number to int32
-     * @param value 
-     * @returns 32 bit integer
-     */
-    function clampInt32(value: number): number {
-        if (value > 2147483647) return 2147483647;
-        if (value < -2147483648) return -2147483648;
-        return value | 0;
+    let teamId = 0
+    let microbitId = 1
+    let sendIntervalMs = 5000
+    let lastSendMs = -5000
+
+    function clampInt8(v: number): number {
+        if (v > 127) return 127
+        if (v < -128) return -128
+        return v
     }
 
-    /**
-     * convert any number to int16
-     * @param value 
-     * @returns 16 bit integer
-     */
-    function clampInt16(value: number): number {
-        if (value > 32767) return 32767;
-        if (value < -32768) return -32768;
-        return (value << 16) >> 16; 
+    function clampInt16(v: number): number {
+        if (v > 32767) return 32767
+        if (v < -32768) return -32768
+        return v
     }
 
-    /**
-     * convert any number to int8
-     * @param value 
-     * @returns 8 bit integer (byte)
-     */
-    function clampInt8(value: number): number {
-        if (value > 127) return 127;
-        if (value < -128) return -128;
-        return (value << 24) >> 24;
+    function clampUInt8(v: number): number {
+        return v & 0xff
     }
 
-    /**
-     * bitmask so we can get the id and packettype in the same byte
-     * bits 0-2: packetType (0-7)
-     * bits 3-7: student_id (0-31)
-     */
-    function createId(type: PacketType, id: number) : number {
-        return (id & 0x1F) | ((type & 0x7) << 5);
+    function clampInt32(v: number): number {
+        // MakeCode numbers are doubles; keep value in signed 32-bit range.
+        if (v > 2147483647) return 2147483647
+        if (v < -2147483648) return -2147483648
+        return Math.round(v)
     }
 
-    /**
-     * Helper function to build the packets we want to send to master micro:bit
-     * 
-     */
-    function constructPacket(type: PacketType, id: number, data: number[]): Buffer {
-        let packet = pins.createBuffer(10);
-
-        id = createId(type, id); // combine packetType and student_id
-        packet.setNumber(NumberFormat.UInt8BE, 0, id);
-
-        // all the diff types of packet yo
-        switch (type) {
-            case PacketType.Basic:
-                if (data.length !== 3) return packet;
-
-                packet.setNumber(NumberFormat.Int8BE, 1, clampInt8(data[0]));
-                packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(data[1]));
-                packet.setNumber(NumberFormat.Int32BE, 6, clampInt32(data[2]));
-                break;
-
-            case PacketType.FlexBasic:
-                if (data.length !== 4) return packet;
-
-                packet.setNumber(NumberFormat.Int8BE, 1, clampInt8(data[0]));
-                packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(data[1]));
-                packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(data[2]));
-                packet.setNumber(NumberFormat.Int32BE, 6, clampInt32(data[3]));
-                break;
-
-            case PacketType.ExtendedBasic:
-                if (data.length !== 5) return packet;
-
-                packet.setNumber(NumberFormat.Int8BE, 1, clampInt8(data[0]));
-                packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(data[1]));
-                packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(data[2]));
-                packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(data[3]));
-                packet.setNumber(NumberFormat.Int16BE, 8, clampInt16(data[4]));
-                break;
-
-            case PacketType.Float:
-                if (data.length !== 3) return packet;
-
-                packet.setNumber(NumberFormat.Int8BE, 1, clampInt8(data[0]));
-                packet.setNumber(NumberFormat.Float32BE, 2, data[1]);
-                packet.setNumber(NumberFormat.Float32BE, 6, data[2]);
-                break;
-
-            case PacketType.Balanced:
-                if (data.length !== 3) return packet;
-
-                packet.setNumber(NumberFormat.Int8BE, 1, clampInt8(data[0]));
-                packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(data[1]));
-                packet.setNumber(NumberFormat.Float32BE, 6, data[2]);
-                break;
-
-            case PacketType.BetterBalance:
-                if (data.length !== 4) return packet;
-
-                packet.setNumber(NumberFormat.Int8BE, 1, clampInt8(data[0]));
-                packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(data[1]));
-                packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(data[2]));
-                packet.setNumber(NumberFormat.Float32BE, 6, data[3]);
-                break;
-
-            case PacketType.Silly:
-                if (data.length < 2) return packet;
-
-                packet.setNumber(NumberFormat.Float32BE, 1, data[0]); 
-                for (let i = 1; i < data.length; i++) {
-                    packet.setNumber(NumberFormat.UInt8BE, 5 + i, data[i]); 
-                }
-                break;
-
-            case PacketType.String:
-
-                for (let i = 0; i < data.length; i++) {
-                    packet.setNumber(NumberFormat.UInt8BE, 1 + i, data[i]); 
-                }
-                break;
-        }
-        return packet;
+    function packedId(packetType: PacketType): number {
+        return (teamId & 0x1f) | ((packetType & 0x07) << 5)
     }
 
-    //EXPORTED FUNCTIONS
-
-    /**
-     * This should be placed in the start up section
-     * @param id Payload identifier --> Team Name
-     */
-    //% block="start as Team $id"
-    //% id.defl=Phobos
-    //% weight=91
-    //% group="Basic"
-    //% inlineInputMode=inline
-    export function initTeam(id : Moons) {
-        intervalTime = input.runningTime();
-
-        student_id = id;
-
-        radio.setTransmitPower(default_power);
-        radio.setGroup(default_group);
-        radio.setFrequencyBand(default_channel);
-        radio.setTransmitSerialNumber(false);
-        radio.on();
-    }
-
-    /**
-     * This should be placed in the start up section
-     * @param id Payload identifier (0–31) 5 bits
-     */
-    //% block="start with id $id (0-31)"
-    //% weight=91
-    //% group="Advanced"
-    //% inlineInputMode=inline
-    export function initNumber(id : number) {
-        intervalTime = input.runningTime();
-
-        //enforce id limits
-        if (id < 0) {id *= -1}
-        student_id = id % 32;
-
-        radio.setTransmitPower(default_power);
-        radio.setGroup(default_group);
-        radio.setFrequencyBand(default_channel);
-        radio.setTransmitSerialNumber(false);
-        radio.on();
-    }
-
-    /**
-     * sends to master micro:bit buffer
-     * @param temp Temperature to include (-128 to 127)
-     * @param data1 First data value, signed int32
-     * @param data2 Second data value, signed int32
-     */
-    //% block="request downlink with temp $temp data1 $data1 data2 $data2"
-    //% weight=90
-    //% group="Basic"
-    //% inlineInputMode=inline
-    export function downlinkBasic(temp: number, data1: number, data2: number) {
-
-        if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const packet = constructPacket(PacketType.Basic, student_id, [temp, data1, data2]);
-            radio.sendBuffer(packet);
-
-            intervalTime = input.runningTime();
-        }
-        
-    }
-
-    //% block="request downlink with byte $int8 short1 $short1 short2 $short2 int $int32"
-    //% weight=90 group="Advanced" inlineInputMode=inline
-    export function downlinkFlexBasic(int8: number, short1: number, short2: number, int32: number) {
-        if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const packet = constructPacket(PacketType.FlexBasic, student_id, [int8, short1, short2, int32])
-            radio.sendBuffer(packet);
-            intervalTime = input.runningTime();
+    function writeAscii(buf: Buffer, offset: number, text: string, width: number): void {
+        for (let i = 0; i < width; i++) {
+            let code = 0
+            if (i < text.length) {
+                code = text.charCodeAt(i) & 0x7f
+            }
+            buf[offset + i] = code
         }
     }
 
-    //% block="request downlink with byte $int8 short1 $s1 short2 $s2 short3 $s3 short4 $s4"
-    //% weight=90 group="Advanced" inlineInputMode=inline
-    export function downlinkExtendedBasic(int8: number, s1: number, s2: number, s3: number, s4: number) {
-        if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const packet = constructPacket(PacketType.ExtendedBasic, student_id, [int8, s1, s2, s3, s4]);
-            radio.sendBuffer(packet);
-            intervalTime = input.runningTime();
-        }
+    function canSendNow(): boolean {
+        return input.runningTime() - lastSendMs >= sendIntervalMs
     }
 
-    //% block="request downlink with byte $int8 float1 $float1 float2 $float2"
-    //% weight=90
-    //% group="Advanced"
-    //% inlineInputMode=inline
-    export function downlinkFloat(int8: number, float1: number, float2: number) {
+    function sendPacket(packetType: PacketType, payloadWriter: (packet: Buffer) => void): void {
+        if (!canSendNow()) return
 
-        if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const packet = constructPacket(PacketType.Float, student_id, [int8, float1, float2]);
-            radio.sendBuffer(packet);
-
-            intervalTime = input.runningTime();
-        }
-        
+        const packet = pins.createBuffer(11)
+        packet[0] = microbitId
+        packet[1] = packedId(packetType)
+        payloadWriter(packet)
+        radio.sendBuffer(packet)
+        lastSendMs = input.runningTime()
     }
 
-    //% block="request downlink with byte $int8 int $intVal float $floatVal"
-    //% weight=90 group="Advanced" inlineInputMode=inline
-    export function downlinkBalanced(int8: number, intVal: number, floatVal: number) {
-        if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const packet = constructPacket(PacketType.Balanced, student_id, [int8, intVal, floatVal]);
-            radio.sendBuffer(packet);
-            intervalTime = input.runningTime();
-        }
+    //% block="initialize S4 comm team id $id channel $channel group $group power $power interval ms $interval"
+    //% id.min=0 id.max=31 channel.min=0 channel.max=83 group.min=0 group.max=255 power.min=0 power.max=7 interval.min=0
+    export function initialize(id: number, channel: number = 7, group: number = 23, power: number = 7, interval: number = 5000): void {
+        teamId = id & 0x1f
+        sendIntervalMs = Math.max(0, interval)
+        radio.setFrequencyBand(channel)
+        radio.setGroup(group)
+        radio.setTransmitPower(power)
     }
 
-    //% block="request downlink with byte $int8 short1 $s1 short2 $s2 float $f"
-    //% weight=90 group="Advanced" inlineInputMode=inline
-    export function downlinkBetterBalance(int8: number, s1: number, s2: number, f: number) {
-        if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const packet = constructPacket(PacketType.BetterBalance, student_id, [int8, s1, s2, f]);
-            radio.sendBuffer(packet);
-            intervalTime = input.runningTime();
-        }
+    //% block="set team id $id"
+    //% id.min=0 id.max=31
+    export function setTeamId(id: number): void {
+        teamId = id & 0x1f
     }
 
-    //% block="request downlink with float $f string $str (5 char)"
-    //% weight=90 group="Advanced" inlineInputMode=inline
-    export function downlinkSilly(f: number, str: string) {
-        if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const chars: number[] = (str.split("").map(c => c.charCodeAt(0))).slice(0, 5);
-            const packet = constructPacket(PacketType.Silly, student_id, chars);
-            radio.sendBuffer(packet);
-            intervalTime = input.runningTime();
-        }
+    //% block="set microbit id $id"
+    //% id.min=0 id.max=255
+    export function setMicrobitId(id: number): void {
+        microbitId = clampUInt8(id)
     }
 
-    //% block="request downlink with string $str (9 char)"
-    //% weight=90 group="Advanced" inlineInputMode=inline
-    export function downlinkString(str: string) {
-        if (input.runningTime() - intervalTime >= minPayloadInterval) {
-            const chars: number[] = (str.split("").map(c => c.charCodeAt(0))).slice(0, 9);
-            const packet = constructPacket(PacketType.String, student_id, chars);
-            radio.sendBuffer(packet);
-            intervalTime = input.runningTime();
-        }
+    //% block="set send interval ms $interval"
+    //% interval.min=0
+    export function setSendInterval(interval: number): void {
+        sendIntervalMs = Math.max(0, interval)
+    }
+
+    //% block="send basic temp $temp data1 $data1 data2 $data2"
+    export function sendBasic(temp: number, data1: number, data2: number): void {
+        sendPacket(PacketType.Basic, (packet) => {
+            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(temp))
+            packet.setNumber(NumberFormat.Int32BE, 3, clampInt32(data1))
+            packet.setNumber(NumberFormat.Int32BE, 7, clampInt32(data2))
+        })
+    }
+
+    //% block="send flex basic int8 $int8Value short1 $short1 short2 $short2 int32 $int32Value"
+    export function sendFlexBasic(int8Value: number, short1: number, short2: number, int32Value: number): void {
+        sendPacket(PacketType.FlexBasic, (packet) => {
+            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
+            packet.setNumber(NumberFormat.Int16BE, 3, clampInt16(short1))
+            packet.setNumber(NumberFormat.Int16BE, 5, clampInt16(short2))
+            packet.setNumber(NumberFormat.Int32BE, 7, clampInt32(int32Value))
+        })
+    }
+
+    //% block="send extended basic int8 $int8Value short1 $short1 short2 $short2 short3 $short3 short4 $short4"
+    export function sendExtendedBasic(int8Value: number, short1: number, short2: number, short3: number, short4: number): void {
+        sendPacket(PacketType.ExtendedBasic, (packet) => {
+            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
+            packet.setNumber(NumberFormat.Int16BE, 3, clampInt16(short1))
+            packet.setNumber(NumberFormat.Int16BE, 5, clampInt16(short2))
+            packet.setNumber(NumberFormat.Int16BE, 7, clampInt16(short3))
+            packet.setNumber(NumberFormat.Int16BE, 9, clampInt16(short4))
+        })
+    }
+
+    //% block="send float int8 $int8Value float1 $float1 float2 $float2"
+    export function sendFloat(int8Value: number, float1: number, float2: number): void {
+        sendPacket(PacketType.Float, (packet) => {
+            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
+            packet.setNumber(NumberFormat.Float32BE, 3, float1)
+            packet.setNumber(NumberFormat.Float32BE, 7, float2)
+        })
+    }
+
+    //% block="send balanced int8 $int8Value int32 $int32Value float32 $float32Value"
+    export function sendBalanced(int8Value: number, int32Value: number, float32Value: number): void {
+        sendPacket(PacketType.Balanced, (packet) => {
+            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
+            packet.setNumber(NumberFormat.Int32BE, 3, clampInt32(int32Value))
+            packet.setNumber(NumberFormat.Float32BE, 7, float32Value)
+        })
+    }
+
+    //% block="send better balance int8 $int8Value short1 $short1 short2 $short2 float32 $float32Value"
+    export function sendBetterBalance(int8Value: number, short1: number, short2: number, float32Value: number): void {
+        sendPacket(PacketType.BetterBalance, (packet) => {
+            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
+            packet.setNumber(NumberFormat.Int16BE, 3, clampInt16(short1))
+            packet.setNumber(NumberFormat.Int16BE, 5, clampInt16(short2))
+            packet.setNumber(NumberFormat.Float32BE, 7, float32Value)
+        })
+    }
+
+    //% block="send silly float32 $float32Value text $text"
+    export function sendSilly(float32Value: number, text: string): void {
+        sendPacket(PacketType.Silly, (packet) => {
+            packet.setNumber(NumberFormat.Float32BE, 2, float32Value)
+            writeAscii(packet, 6, text || "", 5)
+        })
+    }
+
+    //% block="send string text $text"
+    export function sendString(text: string): void {
+        sendPacket(PacketType.String, (packet) => {
+            writeAscii(packet, 2, text || "", 9)
+        })
     }
 }
