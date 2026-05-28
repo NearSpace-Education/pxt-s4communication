@@ -25,6 +25,7 @@ namespace s4comm {
     const CMD_HERE = 0xD1
     const CMD_POLL = 0xD2
     let respondingToPoll = false
+    let _pollHandler: () => void = null
 
     function clampInt8(v: number): number {
         if (v > 127) return 127
@@ -87,6 +88,25 @@ namespace s4comm {
         radio.setFrequencyBand(channel)
         radio.setGroup(group)
         radio.setTransmitPower(power)
+        radio.onReceivedBuffer(function (receivedBuffer: Buffer) {
+            if (receivedBuffer.length != 3 || receivedBuffer[0] != CTRL_MAGIC) return
+            const cmd = receivedBuffer[1]
+            const target = receivedBuffer[2]
+            if (cmd == CMD_DISCOVER && target == 0xFF) {
+                basic.pause(microbitId * 5)
+                const reply = pins.createBuffer(3)
+                reply[0] = CTRL_MAGIC
+                reply[1] = CMD_HERE
+                reply[2] = microbitId
+                radio.sendBuffer(reply)
+            } else if (cmd == CMD_POLL && target == microbitId) {
+                if (_pollHandler != null) {
+                    respondingToPoll = true
+                    _pollHandler()
+                    respondingToPoll = false
+                }
+            }
+        })
     }
 
     //% block="set team id $id"
@@ -109,23 +129,7 @@ namespace s4comm {
 
     //% block="on master poll"
     export function onMasterPoll(handler: () => void): void {
-        radio.onReceivedBuffer(function (receivedBuffer: Buffer) {
-            if (receivedBuffer.length != 3 || receivedBuffer[0] != CTRL_MAGIC) return
-            const cmd = receivedBuffer[1]
-            const target = receivedBuffer[2]
-            if (cmd == CMD_DISCOVER && target == 0xFF) {
-                basic.pause(microbitId * 5)
-                const reply = pins.createBuffer(3)
-                reply[0] = CTRL_MAGIC
-                reply[1] = CMD_HERE
-                reply[2] = microbitId
-                radio.sendBuffer(reply)
-            } else if (cmd == CMD_POLL && target == microbitId) {
-                respondingToPoll = true
-                handler()
-                respondingToPoll = false
-            }
-        })
+        _pollHandler = handler
     }
 
     //% block="send basic temp $temp data1 $data1 data2 $data2"
