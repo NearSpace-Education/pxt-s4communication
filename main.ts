@@ -120,6 +120,11 @@ namespace s4comm {
         microbitId = clampUInt8(id)
     }
 
+    //% block="microbit id"
+    export function getMicrobitId(): number {
+        return microbitId
+    }
+
     //% block="set send interval ms $interval"
     //% interval.min=0
     export function setSendInterval(interval: number): void {
