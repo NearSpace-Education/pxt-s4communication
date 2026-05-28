@@ -111,6 +111,7 @@ namespace s4comm {
         // MicroPython radio.send_bytes is not receivable by onReceivedBuffer.
         // The master also sends string versions ("D" = discover, "P<id>" = poll).
         radio.onReceivedString(function (receivedString: string) {
+            basic.showString(receivedString)
             if (receivedString == "D") {
                 basic.pause(microbitId * 5)
                 radio.sendString("H" + microbitId)
