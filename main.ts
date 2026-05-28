@@ -12,7 +12,8 @@ namespace s4comm {
         Balanced = 4,
         BetterBalance = 5,
         Silly = 6,
-        String = 7
+        String = 7,
+        Pressure = 8
     }
 
     let microbitId = 1
@@ -69,7 +70,7 @@ namespace s4comm {
     }
 
     function packedId(packetType: PacketType): number {
-        return packetType & 0x07
+        return packetType & 0xff
     }
 
     function writeAscii(buf: Buffer, offset: number, text: string, width: number): void {
@@ -203,13 +204,16 @@ namespace s4comm {
             writeAscii(packet, 2, text || "", 9)
         })
     }
+
+    //% block="send pressure $pressure"
+    export function sendPressure(pressure: number): void {
+        sendPacket(PacketType.Pressure, (packet) => {
+            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
+        })
+    }
 }
 
-/**
- * makecode BMP280 digital pressure sensor Package.
- * From microbit/micropython Chinese community.
- * http://www.micropython.org.cn
- */
+
 
 enum BMP280_I2C_ADDRESS {
     //% block="0x76"
