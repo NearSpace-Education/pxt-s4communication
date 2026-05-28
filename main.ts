@@ -15,7 +15,6 @@ namespace s4comm {
         String = 7
     }
 
-    let teamId = 0
     let microbitId = 1
     let sendIntervalMs = 5000
     let lastSendMs = -5000
@@ -70,7 +69,7 @@ namespace s4comm {
     }
 
     function packedId(packetType: PacketType): number {
-        return (teamId & 0x1f) | ((packetType & 0x07) << 5)
+        return packetType & 0x07
     }
 
     function writeAscii(buf: Buffer, offset: number, text: string, width: number): void {
@@ -98,20 +97,14 @@ namespace s4comm {
         lastSendMs = input.runningTime()
     }
 
-    //% block="initialize S4 comm team id $id channel $channel group $group power $power interval ms $interval"
-    //% id.min=0 id.max=31 channel.min=0 channel.max=83 group.min=0 group.max=255 power.min=0 power.max=7 interval.min=0
+    //% block="initialize S4 comm microbit id $id channel $channel group $group power $power interval ms $interval"
+    //% id.min=0 id.max=255 channel.min=0 channel.max=83 group.min=0 group.max=255 power.min=0 power.max=7 interval.min=0
     export function initialize(id: number, channel: number = 7, group: number = 23, power: number = 7, interval: number = 5000): void {
-        teamId = id & 0x1f
+        microbitId = clampUInt8(id)
         sendIntervalMs = Math.max(0, interval)
         radio.setFrequencyBand(channel)
         radio.setGroup(group)
         radio.setTransmitPower(power)
-    }
-
-    //% block="set team id $id"
-    //% id.min=0 id.max=31
-    export function setTeamId(id: number): void {
-        teamId = id & 0x1f
     }
 
     //% block="set microbit id $id"
