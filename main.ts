@@ -20,6 +20,12 @@ namespace s4comm {
     let sendIntervalMs = 5000
     let lastSendMs = -5000
 
+    const CTRL_MAGIC = 0xAA
+    const CMD_DISCOVER = 0xD0
+    const CMD_HERE = 0xD1
+    const CMD_POLL = 0xD2
+    let respondingToPoll = false
+
     function clampInt8(v: number): number {
         if (v > 127) return 127
         if (v < -128) return -128
@@ -58,6 +64,7 @@ namespace s4comm {
     }
 
     function canSendNow(): boolean {
+        if (respondingToPoll) return true
         return input.runningTime() - lastSendMs >= sendIntervalMs
     }
 
@@ -98,6 +105,27 @@ namespace s4comm {
     //% interval.min=0
     export function setSendInterval(interval: number): void {
         sendIntervalMs = Math.max(0, interval)
+    }
+
+    //% block="on master poll do %handler"
+    export function onMasterPoll(handler: () => void): void {
+        radio.onReceivedBuffer(function (receivedBuffer: Buffer) {
+            if (receivedBuffer.length != 3 || receivedBuffer[0] != CTRL_MAGIC) return
+            const cmd = receivedBuffer[1]
+            const target = receivedBuffer[2]
+            if (cmd == CMD_DISCOVER && target == 0xFF) {
+                basic.pause(microbitId * 5)
+                const reply = pins.createBuffer(3)
+                reply[0] = CTRL_MAGIC
+                reply[1] = CMD_HERE
+                reply[2] = microbitId
+                radio.sendBuffer(reply)
+            } else if (cmd == CMD_POLL && target == microbitId) {
+                respondingToPoll = true
+                handler()
+                respondingToPoll = false
+            }
+        })
     }
 
     //% block="send basic temp $temp data1 $data1 data2 $data2"
