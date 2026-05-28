@@ -120,6 +120,7 @@ namespace s4comm {
         microbitId = clampUInt8(id)
     }
 
+    //% blockId="s4comm_get_microbit_id"
     //% block="microbit id"
     export function getMicrobitId(): number {
         return microbitId
