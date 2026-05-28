@@ -107,6 +107,24 @@ namespace s4comm {
                 }
             }
         })
+        // MicroPython radio.send_bytes is not receivable by onReceivedBuffer.
+        // The master also sends string versions ("D" = discover, "P<id>" = poll).
+        radio.onReceivedString(function (receivedString: string) {
+            if (receivedString == "D") {
+                basic.pause(microbitId * 5)
+                const reply = pins.createBuffer(3)
+                reply[0] = CTRL_MAGIC
+                reply[1] = CMD_HERE
+                reply[2] = microbitId
+                radio.sendBuffer(reply)
+            } else if (receivedString == "P" + microbitId) {
+                if (_pollHandler != null) {
+                    respondingToPoll = true
+                    _pollHandler()
+                    respondingToPoll = false
+                }
+            }
+        })
     }
 
     //% block="set team id $id"
