@@ -107,7 +107,7 @@ namespace s4comm {
         sendIntervalMs = Math.max(0, interval)
     }
 
-    //% block="on master poll do %handler"
+    //% block="on master poll"
     export function onMasterPoll(handler: () => void): void {
         radio.onReceivedBuffer(function (receivedBuffer: Buffer) {
             if (receivedBuffer.length != 3 || receivedBuffer[0] != CTRL_MAGIC) return
