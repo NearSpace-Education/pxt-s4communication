@@ -28,33 +28,16 @@ namespace s4comm {
     let _pollHandler: () => void = function () { }
     let _hasPollHandler = false
 
-    // Handlers must be at namespace level — registering inside a function
-    // call is not reliable in MakeCode's runtime.
-    radio.onReceivedBuffer(function (buf: Buffer) {
-        if (buf.length == 3 && buf[0] == CTRL_MAGIC) {
-            if (buf[1] == CMD_DISCOVER && buf[2] == 0xFF) {
-                basic.pause(microbitId * 5)
-                const reply = pins.createBuffer(3)
-                reply[0] = CTRL_MAGIC
-                reply[1] = CMD_HERE
-                reply[2] = microbitId
-                radio.sendBuffer(reply)
-            } else if (buf[1] == CMD_POLL && buf[2] == microbitId) {
-                if (_hasPollHandler) {
-                    respondingToPoll = true
-                    _pollHandler()
-                    respondingToPoll = false
-                }
-            }
-        }
-    })
-
-    // Python master sends "D" for discover, "P<id>" for poll as strings
-    // because MicroPython radio.send_bytes is not receivable via onReceivedBuffer.
+    // Handlers at namespace level so they register at program start.
+    // Master sends MakeCode-framed strings using send_mk_string() in Python.
     radio.onReceivedString(function (str: string) {
         if (str == "D") {
             basic.pause(microbitId * 5)
-            radio.sendString("H" + microbitId)
+            const reply = pins.createBuffer(3)
+            reply[0] = CTRL_MAGIC
+            reply[1] = CMD_HERE
+            reply[2] = microbitId
+            radio.sendBuffer(reply)
         } else if (str == "P" + microbitId) {
             if (_hasPollHandler) {
                 respondingToPoll = true
