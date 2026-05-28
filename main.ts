@@ -28,6 +28,42 @@ namespace s4comm {
     let _pollHandler: () => void = function () { }
     let _hasPollHandler = false
 
+    // Handlers must be at namespace level — registering inside a function
+    // call is not reliable in MakeCode's runtime.
+    radio.onReceivedBuffer(function (buf: Buffer) {
+        if (buf.length == 3 && buf[0] == CTRL_MAGIC) {
+            if (buf[1] == CMD_DISCOVER && buf[2] == 0xFF) {
+                basic.pause(microbitId * 5)
+                const reply = pins.createBuffer(3)
+                reply[0] = CTRL_MAGIC
+                reply[1] = CMD_HERE
+                reply[2] = microbitId
+                radio.sendBuffer(reply)
+            } else if (buf[1] == CMD_POLL && buf[2] == microbitId) {
+                if (_hasPollHandler) {
+                    respondingToPoll = true
+                    _pollHandler()
+                    respondingToPoll = false
+                }
+            }
+        }
+    })
+
+    // Python master sends "D" for discover, "P<id>" for poll as strings
+    // because MicroPython radio.send_bytes is not receivable via onReceivedBuffer.
+    radio.onReceivedString(function (str: string) {
+        if (str == "D") {
+            basic.pause(microbitId * 5)
+            radio.sendString("H" + microbitId)
+        } else if (str == "P" + microbitId) {
+            if (_hasPollHandler) {
+                respondingToPoll = true
+                _pollHandler()
+                respondingToPoll = false
+            }
+        }
+    })
+
     function clampInt8(v: number): number {
         if (v > 127) return 127
         if (v < -128) return -128
@@ -45,7 +81,6 @@ namespace s4comm {
     }
 
     function clampInt32(v: number): number {
-        // MakeCode numbers are doubles; keep value in signed 32-bit range.
         if (v > 2147483647) return 2147483647
         if (v < -2147483648) return -2147483648
         return Math.round(v)
@@ -72,7 +107,6 @@ namespace s4comm {
 
     function sendPacket(packetType: PacketType, payloadWriter: (packet: Buffer) => void): void {
         if (!canSendNow()) return
-
         const packet = pins.createBuffer(11)
         packet[0] = microbitId
         packet[1] = packedId(packetType)
@@ -89,40 +123,6 @@ namespace s4comm {
         radio.setFrequencyBand(channel)
         radio.setGroup(group)
         radio.setTransmitPower(power)
-        radio.onReceivedBuffer(function (receivedBuffer: Buffer) {
-            if (receivedBuffer.length != 3 || receivedBuffer[0] != CTRL_MAGIC) return
-            const cmd = receivedBuffer[1]
-            const target = receivedBuffer[2]
-            if (cmd == CMD_DISCOVER && target == 0xFF) {
-                basic.pause(microbitId * 5)
-                const reply = pins.createBuffer(3)
-                reply[0] = CTRL_MAGIC
-                reply[1] = CMD_HERE
-                reply[2] = microbitId
-                radio.sendBuffer(reply)
-            } else if (cmd == CMD_POLL && target == microbitId) {
-                if (_hasPollHandler) {
-                    respondingToPoll = true
-                    _pollHandler()
-                    respondingToPoll = false
-                }
-            }
-        })
-        // MicroPython radio.send_bytes is not receivable by onReceivedBuffer.
-        // The master also sends string versions ("D" = discover, "P<id>" = poll).
-        radio.onReceivedString(function (receivedString: string) {
-            basic.showString(receivedString)
-            if (receivedString == "D") {
-                basic.pause(microbitId * 5)
-                radio.sendString("H" + microbitId)
-            } else if (receivedString == "P" + microbitId) {
-                if (_hasPollHandler) {
-                    respondingToPoll = true
-                    _pollHandler()
-                    respondingToPoll = false
-                }
-            }
-        })
     }
 
     //% block="set team id $id"
