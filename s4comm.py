@@ -22,7 +22,7 @@ class PacketType:
 
 class s4comm():
     """data members"""
-    microbit_id = 0x01  # First byte in every packet
+    microbit_id = 0x01  # CHANGE THIS: must be unique per slave (0x01-0xFE)
     id = 0xff
     interval = 5000 #mim interval to prevent spamming
     default_group = 23
@@ -30,8 +30,14 @@ class s4comm():
     default_power = 7
     interval_time = running_time()
 
+    # Pull protocol constants - must match bitMaster_nonblocking.py
+    CTRL_MAGIC = 0xAA   # marks a control (non-data) radio packet
+    CMD_DISCOVER = 0xD0 # master -> all: announce yourself
+    CMD_HERE = 0xD1     # slave -> master: I exist at this microbit_id
+    CMD_POLL = 0xD2     # master -> one slave: send me your data now
+
     """Public methods"""
-    
+
     #get the class and the radio ready
     def init(self, payloadID, microbitID=None):
         self.id = payloadID
@@ -85,6 +91,32 @@ class s4comm():
     def sendString(self, text):
         """Send String packet: char×9"""
         self.sendMaster(PacketType.STRING, text)
+
+    def handleMasterMessage(self, packType, sensorFunc):
+        """
+        Call this every loop tick. Pass a zero-argument callable that reads
+        sensors and returns a tuple of values. Sensors are only read when the
+        master actually polls this slave.
+        """
+        msg = radio.receive_bytes()
+        if msg is None or len(msg) != 3 or msg[0] != self.CTRL_MAGIC:
+            return
+
+        cmd = msg[1]
+        target = msg[2]
+
+        if cmd == self.CMD_DISCOVER and target == 0xFF:
+            # Stagger reply by ID to avoid collisions when many slaves respond at once
+            sleep(self.microbit_id * 5)
+            radio.send_bytes(bytearray([self.CTRL_MAGIC, self.CMD_HERE, self.microbit_id]))
+
+        elif cmd == self.CMD_POLL and target == self.microbit_id:
+            # Read sensors NOW, on demand, then send
+            sensor_data = sensorFunc()
+            radio.send_bytes(self._constructPacket(packType, *sensor_data))
+            display.show(Image.HAPPY)
+            sleep(100)
+            display.clear()
 
     """private methods"""
 
@@ -187,21 +219,18 @@ class s4comm():
         return new_id
 
 comm = s4comm()
-comm.init(3)
+comm.init(3)  # set microbit_id in the class definition above, not here
 
-comm.interval = 5000 # 5 seconds
+def readSensors():
+    l1 = display.read_light_level(); sleep(5)
+    l2 = display.read_light_level(); sleep(5)
+    l3 = display.read_light_level(); sleep(5)
+    l4 = display.read_light_level(); sleep(5)
+    l5 = display.read_light_level()
+    return (l1, l2, l3, l4, l5)
 
 while True:
-    l1 = display.read_light_level()
+    # Sensors are read only when the master polls this slave
+    comm.handleMasterMessage(PacketType.EXTENDED_BASIC, readSensors)
     sleep(10)
-    l2 = display.read_light_level()
-    sleep(10)
-    l3 = display.read_light_level()
-    sleep(10)
-    l4 = display.read_light_level()
-    sleep(10)
-    l5 = display.read_light_level()
-
-    comm.sendExtendedBasic(l1, l2, l3, l4, l5)
-    sleep(100)
 
