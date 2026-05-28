@@ -25,7 +25,8 @@ namespace s4comm {
     const CMD_HERE = 0xD1
     const CMD_POLL = 0xD2
     let respondingToPoll = false
-    let _pollHandler: () => void = null
+    let _pollHandler: () => void = function () { }
+    let _hasPollHandler = false
 
     function clampInt8(v: number): number {
         if (v > 127) return 127
@@ -100,7 +101,7 @@ namespace s4comm {
                 reply[2] = microbitId
                 radio.sendBuffer(reply)
             } else if (cmd == CMD_POLL && target == microbitId) {
-                if (_pollHandler != null) {
+                if (_hasPollHandler) {
                     respondingToPoll = true
                     _pollHandler()
                     respondingToPoll = false
@@ -118,7 +119,7 @@ namespace s4comm {
                 reply[2] = microbitId
                 radio.sendBuffer(reply)
             } else if (receivedString == "P" + microbitId) {
-                if (_pollHandler != null) {
+                if (_hasPollHandler) {
                     respondingToPoll = true
                     _pollHandler()
                     respondingToPoll = false
@@ -148,6 +149,7 @@ namespace s4comm {
     //% block="on master poll"
     export function onMasterPoll(handler: () => void): void {
         _pollHandler = handler
+        _hasPollHandler = true
     }
 
     //% block="send basic temp $temp data1 $data1 data2 $data2"
