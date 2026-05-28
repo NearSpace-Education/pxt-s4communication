@@ -33,11 +33,7 @@ namespace s4comm {
     radio.onReceivedString(function (str: string) {
         if (str == "D") {
             basic.pause(microbitId * 5)
-            const reply = pins.createBuffer(3)
-            reply[0] = CTRL_MAGIC
-            reply[1] = CMD_HERE
-            reply[2] = microbitId
-            radio.sendBuffer(reply)
+            radio.sendString("H" + microbitId)
         } else if (str == "P" + microbitId) {
             if (_hasPollHandler) {
                 respondingToPoll = true
