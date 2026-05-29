@@ -11,7 +11,8 @@ namespace s4comm {
         Atmosphere = 10,
         Environment = 11,
         Acceleration = 12,
-        Orientation = 13
+        Orientation = 13,
+        Int = 14
     }
 
     let microbitId = 1
@@ -193,6 +194,13 @@ namespace s4comm {
             packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(accelY))
             packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(accelZ))
             packet.setNumber(NumberFormat.Int16BE, 8, clampInt16(compass))
+        })
+    }
+
+    //% block="send int $value"
+    export function sendInt(value: number): void {
+        sendPacket(PacketType.Int, (packet) => {
+            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(value))
         })
     }
 }
