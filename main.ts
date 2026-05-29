@@ -100,6 +100,7 @@ namespace s4comm {
 
     //% block="initialize S4 comm microbit id $id channel $channel group $group power $power interval ms $interval"
     //% id.min=0 id.max=255 channel.min=0 channel.max=83 group.min=0 group.max=255 power.min=0 power.max=7 interval.min=0
+    //% channel.defl=7 group.defl=23 power.defl=7 interval.defl=5000
     export function initialize(id: number, channel: number = 7, group: number = 23, power: number = 7, interval: number = 5000): void {
         microbitId = clampUInt8(id)
         sendIntervalMs = Math.max(0, interval)
