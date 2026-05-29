@@ -1,19 +1,17 @@
 /**
  * S4 communication helpers for MakeCode.
  * Packet format is 11 bytes:
- * [0] microbit_id, [1] packed team/type id, [2..10] payload.
+ * [0] microbit_id, [1] packet type, [2..10] payload.
  */
 namespace s4comm {
     export enum PacketType {
-        Basic = 0,
-        FlexBasic = 1,
-        ExtendedBasic = 2,
-        Float = 3,
-        Balanced = 4,
-        BetterBalance = 5,
-        Silly = 6,
         String = 7,
-        Pressure = 8
+        Pressure = 8,
+        LightSound = 9,
+        Atmosphere = 10,
+        Environment = 11,
+        Acceleration = 12,
+        Orientation = 13
     }
 
     let microbitId = 1
@@ -134,72 +132,6 @@ namespace s4comm {
         _hasPollHandler = true
     }
 
-    //% block="send basic temp $temp data1 $data1 data2 $data2"
-    export function sendBasic(temp: number, data1: number, data2: number): void {
-        sendPacket(PacketType.Basic, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(temp))
-            packet.setNumber(NumberFormat.Int32BE, 3, clampInt32(data1))
-            packet.setNumber(NumberFormat.Int32BE, 7, clampInt32(data2))
-        })
-    }
-
-    //% block="send flex basic int8 $int8Value short1 $short1 short2 $short2 int32 $int32Value"
-    export function sendFlexBasic(int8Value: number, short1: number, short2: number, int32Value: number): void {
-        sendPacket(PacketType.FlexBasic, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
-            packet.setNumber(NumberFormat.Int16BE, 3, clampInt16(short1))
-            packet.setNumber(NumberFormat.Int16BE, 5, clampInt16(short2))
-            packet.setNumber(NumberFormat.Int32BE, 7, clampInt32(int32Value))
-        })
-    }
-
-    //% block="send extended basic int8 $int8Value short1 $short1 short2 $short2 short3 $short3 short4 $short4"
-    export function sendExtendedBasic(int8Value: number, short1: number, short2: number, short3: number, short4: number): void {
-        sendPacket(PacketType.ExtendedBasic, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
-            packet.setNumber(NumberFormat.Int16BE, 3, clampInt16(short1))
-            packet.setNumber(NumberFormat.Int16BE, 5, clampInt16(short2))
-            packet.setNumber(NumberFormat.Int16BE, 7, clampInt16(short3))
-            packet.setNumber(NumberFormat.Int16BE, 9, clampInt16(short4))
-        })
-    }
-
-    //% block="send float int8 $int8Value float1 $float1 float2 $float2"
-    export function sendFloat(int8Value: number, float1: number, float2: number): void {
-        sendPacket(PacketType.Float, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
-            packet.setNumber(NumberFormat.Float32BE, 3, float1)
-            packet.setNumber(NumberFormat.Float32BE, 7, float2)
-        })
-    }
-
-    //% block="send balanced int8 $int8Value int32 $int32Value float32 $float32Value"
-    export function sendBalanced(int8Value: number, int32Value: number, float32Value: number): void {
-        sendPacket(PacketType.Balanced, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
-            packet.setNumber(NumberFormat.Int32BE, 3, clampInt32(int32Value))
-            packet.setNumber(NumberFormat.Float32BE, 7, float32Value)
-        })
-    }
-
-    //% block="send better balance int8 $int8Value short1 $short1 short2 $short2 float32 $float32Value"
-    export function sendBetterBalance(int8Value: number, short1: number, short2: number, float32Value: number): void {
-        sendPacket(PacketType.BetterBalance, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
-            packet.setNumber(NumberFormat.Int16BE, 3, clampInt16(short1))
-            packet.setNumber(NumberFormat.Int16BE, 5, clampInt16(short2))
-            packet.setNumber(NumberFormat.Float32BE, 7, float32Value)
-        })
-    }
-
-    //% block="send silly float32 $float32Value text $text"
-    export function sendSilly(float32Value: number, text: string): void {
-        sendPacket(PacketType.Silly, (packet) => {
-            packet.setNumber(NumberFormat.Float32BE, 2, float32Value)
-            writeAscii(packet, 6, text || "", 5)
-        })
-    }
-
     //% block="send string text $text"
     export function sendString(text: string): void {
         sendPacket(PacketType.String, (packet) => {
@@ -211,6 +143,51 @@ namespace s4comm {
     export function sendPressure(pressure: number): void {
         sendPacket(PacketType.Pressure, (packet) => {
             packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
+        })
+    }
+
+    //% block="send light sound light $light sound $sound"
+    export function sendLightSound(light: number, sound: number): void {
+        sendPacket(PacketType.LightSound, (packet) => {
+            packet[2] = clampUInt8(light)
+            packet[3] = clampUInt8(sound)
+        })
+    }
+
+    //% block="send atmosphere pressure $pressure temp $temp"
+    export function sendAtmosphere(pressure: number, temp: number): void {
+        sendPacket(PacketType.Atmosphere, (packet) => {
+            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
+            packet.setNumber(NumberFormat.Int8LE, 6, clampInt8(temp))
+        })
+    }
+
+    //% block="send environment pressure $pressure temp $temp light $light sound $sound"
+    export function sendEnvironment(pressure: number, temp: number, light: number, sound: number): void {
+        sendPacket(PacketType.Environment, (packet) => {
+            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
+            packet.setNumber(NumberFormat.Int8LE, 6, clampInt8(temp))
+            packet[7] = clampUInt8(light)
+            packet[8] = clampUInt8(sound)
+        })
+    }
+
+    //% block="send acceleration x $accelX y $accelY z $accelZ"
+    export function sendAcceleration(accelX: number, accelY: number, accelZ: number): void {
+        sendPacket(PacketType.Acceleration, (packet) => {
+            packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
+            packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(accelY))
+            packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(accelZ))
+        })
+    }
+
+    //% block="send orientation x $accelX y $accelY z $accelZ compass $compass"
+    export function sendOrientation(accelX: number, accelY: number, accelZ: number, compass: number): void {
+        sendPacket(PacketType.Orientation, (packet) => {
+            packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
+            packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(accelY))
+            packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(accelZ))
+            packet.setNumber(NumberFormat.Int16BE, 8, clampInt16(compass))
         })
     }
 }
