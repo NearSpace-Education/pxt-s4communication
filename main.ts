@@ -147,7 +147,7 @@ namespace s4comm {
     }
 
     //% block="send light $light sound $sound"
-    //% inlineInputMode=inline
+    //% inlineInputMode=external
     export function sendLightSound(light: number, sound: number): void {
         sendPacket(PacketType.LightSound, (packet) => {
             packet[2] = clampUInt8(light)
@@ -156,7 +156,7 @@ namespace s4comm {
     }
 
     //% block="send atmosphere pressure $pressure temp $temp"
-    //% inlineInputMode=inline
+    //% inlineInputMode=external
     export function sendAtmosphere(pressure: number, temp: number): void {
         sendPacket(PacketType.Atmosphere, (packet) => {
             packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
@@ -165,7 +165,7 @@ namespace s4comm {
     }
 
     //% block="send environment pressure $pressure temp $temp light $light sound $sound"
-    //% inlineInputMode=inline
+    //% inlineInputMode=external
     export function sendEnvironment(pressure: number, temp: number, light: number, sound: number): void {
         sendPacket(PacketType.Environment, (packet) => {
             packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
@@ -176,7 +176,7 @@ namespace s4comm {
     }
 
     //% block="send acceleration x $accelX y $accelY z $accelZ"
-    //% inlineInputMode=inline
+    //% inlineInputMode=external
     export function sendAcceleration(accelX: number, accelY: number, accelZ: number): void {
         sendPacket(PacketType.Acceleration, (packet) => {
             packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
@@ -186,7 +186,7 @@ namespace s4comm {
     }
 
     //% block="send orientation x $accelX y $accelY z $accelZ compass $compass"
-    //% inlineInputMode=inline
+    //% inlineInputMode=external
     export function sendOrientation(accelX: number, accelY: number, accelZ: number, compass: number): void {
         sendPacket(PacketType.Orientation, (packet) => {
             packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
