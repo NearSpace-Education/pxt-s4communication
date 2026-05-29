@@ -11,13 +11,10 @@ namespace s4comm {
         Atmosphere = 10,
         Environment = 11,
         Acceleration = 12,
-        Orientation = 13,
         Int = 14
     }
 
     let microbitId = 1
-    let sendIntervalMs = 5000
-    let lastSendMs = -5000
 
     const CTRL_MAGIC = 0xAA
     const CMD_DISCOVER = 0xD0
@@ -84,28 +81,21 @@ namespace s4comm {
         }
     }
 
-    function canSendNow(): boolean {
-        if (respondingToPoll) return true
-        return input.runningTime() - lastSendMs >= sendIntervalMs
-    }
-
     function sendPacket(packetType: PacketType, payloadWriter: (packet: Buffer) => void): void {
-        if (!canSendNow()) return
+        if (!respondingToPoll) return
         const packet = pins.createBuffer(19)
         packet[0] = microbitId
         packet[1] = packedId(packetType)
         payloadWriter(packet)
         radio.sendBuffer(packet)
-        lastSendMs = input.runningTime()
     }
 
-    //% block="initialize S4 comm microbit id $id channel $channel group $group power $power interval ms $interval"
-    //% id.min=0 id.max=255 channel.min=0 channel.max=83 group.min=0 group.max=255 power.min=0 power.max=7 interval.min=0
-    //% channel.defl=7 group.defl=23 power.defl=7 interval.defl=5000
+    //% block="initialize S4 comm microbit id $id channel $channel group $group power $power"
+    //% id.min=0 id.max=255 channel.min=0 channel.max=83 group.min=0 group.max=255 power.min=0 power.max=7
+    //% channel.defl=7 group.defl=23 power.defl=7
     //% id.tooltip="Must be unique for each microbit"
-    export function initialize(id: number, channel: number = 7, group: number = 23, power: number = 7, interval: number = 5000): void {
+    export function initialize(id: number, channel: number = 7, group: number = 23, power: number = 7): void {
         microbitId = clampUInt8(id)
-        sendIntervalMs = Math.max(0, interval)
         radio.setFrequencyBand(channel)
         radio.setGroup(group)
         radio.setTransmitPower(power)
@@ -121,12 +111,6 @@ namespace s4comm {
     //% block="microbit id"
     export function getMicrobitId(): number {
         return microbitId
-    }
-
-    //% block="set send interval ms $interval"
-    //% interval.min=0
-    export function setSendInterval(interval: number): void {
-        sendIntervalMs = Math.max(0, interval)
     }
 
     //% block="on master poll"
@@ -185,17 +169,6 @@ namespace s4comm {
             packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
             packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(accelY))
             packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(accelZ))
-        })
-    }
-
-    //% block="send orientation x $accelX y $accelY z $accelZ compass $compass"
-    //% inlineInputMode=external
-    export function sendOrientation(accelX: number, accelY: number, accelZ: number, compass: number): void {
-        sendPacket(PacketType.Orientation, (packet) => {
-            packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
-            packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(accelY))
-            packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(accelZ))
-            packet.setNumber(NumberFormat.Int16BE, 8, clampInt16(compass))
         })
     }
 
