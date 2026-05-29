@@ -89,7 +89,7 @@ namespace s4comm {
 
     function sendPacket(packetType: PacketType, payloadWriter: (packet: Buffer) => void): void {
         if (!canSendNow()) return
-        const packet = pins.createBuffer(11)
+        const packet = pins.createBuffer(19)
         packet[0] = microbitId
         packet[1] = packedId(packetType)
         payloadWriter(packet)
@@ -136,7 +136,7 @@ namespace s4comm {
     //% block="send string text $text"
     export function sendString(text: string): void {
         sendPacket(PacketType.String, (packet) => {
-            writeAscii(packet, 2, text || "", 9)
+            writeAscii(packet, 2, text || "", 17)
         })
     }
 
