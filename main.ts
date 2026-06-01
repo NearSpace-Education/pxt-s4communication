@@ -196,6 +196,7 @@ namespace s4comm {
     //% block="send acceleration strength $strength"
     //% weight=35
     export function sendStrength(strength: number): void {
+        if (_inCustomPacket) { customAddField(0x5, 2, (buf, off) => { buf.setNumber(NumberFormat.Int16BE, off, clampInt16(strength)) }); return }
         sendPacket(PacketType.Strength, (packet) => {
             packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(strength))
         })
@@ -204,6 +205,7 @@ namespace s4comm {
     //% block="send pressure $pressure"
     //% weight=30
     export function sendPressure(pressure: number): void {
+        if (_inCustomPacket) { customAddField(0x2, 4, (buf, off) => { buf.setNumber(NumberFormat.Int32BE, off, clampInt32(pressure)) }); return }
         sendPacket(PacketType.Pressure, (packet) => {
             packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
         })
@@ -212,6 +214,7 @@ namespace s4comm {
     //% block="send temperature $temp"
     //% weight=29
     export function sendTemp(temp: number): void {
+        if (_inCustomPacket) { customAddField(0x1, 1, (buf, off) => { buf[off] = clampInt8(temp) & 0xFF }); return }
         sendPacket(PacketType.Temperature, (packet) => {
             packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(temp))
         })
@@ -220,6 +223,7 @@ namespace s4comm {
     //% block="send light $light"
     //% weight=28
     export function sendLight(light: number): void {
+        if (_inCustomPacket) { customAddField(0x3, 1, (buf, off) => { buf[off] = clampUInt8(light) }); return }
         sendPacket(PacketType.Light, (packet) => {
             packet[2] = clampUInt8(light)
         })
@@ -228,6 +232,7 @@ namespace s4comm {
     //% block="send sound $sound"
     //% weight=27
     export function sendSound(sound: number): void {
+        if (_inCustomPacket) { customAddField(0x4, 1, (buf, off) => { buf[off] = clampUInt8(sound) }); return }
         sendPacket(PacketType.Sound, (packet) => {
             packet[2] = clampUInt8(sound)
         })
@@ -246,6 +251,7 @@ namespace s4comm {
     //% block="send int $value"
     //% weight=15
     export function sendInt(value: number): void {
+        if (_inCustomPacket) { customAddField(0x6, 4, (buf, off) => { buf.setNumber(NumberFormat.Int32BE, off, clampInt32(value)) }); return }
         sendPacket(PacketType.Int, (packet) => {
             packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(value))
         })
@@ -269,36 +275,6 @@ namespace s4comm {
                 packet[4 + i] = _customData[i]
             }
         })
-    }
-
-    //% block="field temperature $value"
-    export function customFieldTemperature(value: number): void {
-        customAddField(0x1, 1, (buf, off) => { buf[off] = clampInt8(value) & 0xFF })
-    }
-
-    //% block="field pressure $value"
-    export function customFieldPressure(value: number): void {
-        customAddField(0x2, 4, (buf, off) => { buf.setNumber(NumberFormat.Int32BE, off, clampInt32(value)) })
-    }
-
-    //% block="field light $value"
-    export function customFieldLight(value: number): void {
-        customAddField(0x3, 1, (buf, off) => { buf[off] = clampUInt8(value) })
-    }
-
-    //% block="field sound $value"
-    export function customFieldSound(value: number): void {
-        customAddField(0x4, 1, (buf, off) => { buf[off] = clampUInt8(value) })
-    }
-
-    //% block="field strength $value"
-    export function customFieldStrength(value: number): void {
-        customAddField(0x5, 2, (buf, off) => { buf.setNumber(NumberFormat.Int16BE, off, clampInt16(value)) })
-    }
-
-    //% block="field int $value"
-    export function customFieldInt(value: number): void {
-        customAddField(0x6, 4, (buf, off) => { buf.setNumber(NumberFormat.Int32BE, off, clampInt32(value)) })
     }
 
     //% block="send string text $text"
