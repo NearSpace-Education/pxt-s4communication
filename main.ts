@@ -11,6 +11,7 @@ namespace s4comm {
         Atmosphere = 10,
         Environment = 11,
         Acceleration = 12,
+        Strength = 13,
         Int = 14
     }
 
@@ -169,6 +170,13 @@ namespace s4comm {
             packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
             packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(accelY))
             packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(accelZ))
+        })
+    }
+
+    //% block="send acceleration strength $strength"
+    export function sendStrength(strength: number): void {
+        sendPacket(PacketType.Strength, (packet) => {
+            packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(strength))
         })
     }
 
