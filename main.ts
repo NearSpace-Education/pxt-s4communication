@@ -162,7 +162,7 @@ namespace s4comm {
     //     })
     // }
 
-    //% block="send gravity x $accelX y $accelY z $accelZ strength $strength"
+    //% block="send acceleration x $accelX y $accelY z $accelZ strength $strength"
     //% inlineInputMode=external
     //% weight=40
     export function sendAccelerationFull(accelX: number, accelY: number, accelZ: number, strength: number): void {
