@@ -6,17 +6,17 @@
 namespace s4comm {
     export enum PacketType {
         String = 7,
-        Pressure = 8,
+        //Pressure = 8,
         LightSound = 9,
         Atmosphere = 10,
         Environment = 11,
-        Acceleration = 12,
-        Strength = 13,
+        // Acceleration = 12,
+        //Strength = 13,
         Int = 14,
         AccelerationFull = 15,
-        Temperature = 16,
-        Light = 17,
-        Sound = 18,
+        //Temperature = 16,
+        //Light = 17,
+       // Sound = 18,
         Custom = 19
     }
 
@@ -151,16 +151,16 @@ namespace s4comm {
         })
     }
 
-    //% block="send acceleration x $accelX y $accelY z $accelZ"
-    //% inlineInputMode=external
-    //% weight=38
-    export function sendAcceleration(accelX: number, accelY: number, accelZ: number): void {
-        sendPacket(PacketType.Acceleration, (packet) => {
-            packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
-            packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(accelY))
-            packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(accelZ))
-        })
-    }
+    // //% block="send acceleration x $accelX y $accelY z $accelZ"
+    // //% inlineInputMode=external
+    // //% weight=38
+    // export function sendAcceleration(accelX: number, accelY: number, accelZ: number): void {
+    //     sendPacket(PacketType.Acceleration, (packet) => {
+    //         packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
+    //         packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(accelY))
+    //         packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(accelZ))
+    //     })
+    // }
 
     //% block="send gravity x $accelX y $accelY z $accelZ strength $strength"
     //% inlineInputMode=external
@@ -174,45 +174,45 @@ namespace s4comm {
         })
     }
 
-    //% block="send acceleration strength $strength"
-    //% weight=35
-    export function sendStrength(strength: number): void {
-        sendPacket(PacketType.Strength, (packet) => {
-            packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(strength))
-        })
-    }
+    // //% block="send acceleration strength $strength"
+    // //% weight=35
+    // export function sendStrength(strength: number): void {
+    //     sendPacket(PacketType.Strength, (packet) => {
+    //         packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(strength))
+    //     })
+    // }
 
-    //% block="send pressure $pressure"
-    //% weight=30
-    export function sendPressure(pressure: number): void {
-        sendPacket(PacketType.Pressure, (packet) => {
-            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
-        })
-    }
+    // //% block="send pressure $pressure"
+    // //% weight=30
+    // export function sendPressure(pressure: number): void {
+    //     sendPacket(PacketType.Pressure, (packet) => {
+    //         packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
+    //     })
+    // }
 
-    //% block="send temperature $temp"
-    //% weight=29
-    export function sendTemp(temp: number): void {
-        sendPacket(PacketType.Temperature, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(temp))
-        })
-    }
+    // //% block="send temperature $temp"
+    // //% weight=29
+    // export function sendTemp(temp: number): void {
+    //     sendPacket(PacketType.Temperature, (packet) => {
+    //         packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(temp))
+    //     })
+    // }
 
-    //% block="send light $light"
-    //% weight=28
-    export function sendLight(light: number): void {
-        sendPacket(PacketType.Light, (packet) => {
-            packet[2] = clampUInt8(light)
-        })
-    }
+    // //% block="send light $light"
+    // //% weight=28
+    // export function sendLight(light: number): void {
+    //     sendPacket(PacketType.Light, (packet) => {
+    //         packet[2] = clampUInt8(light)
+    //     })
+    // }
 
-    //% block="send sound $sound"
-    //% weight=27
-    export function sendSound(sound: number): void {
-        sendPacket(PacketType.Sound, (packet) => {
-            packet[2] = clampUInt8(sound)
-        })
-    }
+    // //% block="send sound $sound"
+    // //% weight=27
+    // export function sendSound(sound: number): void {
+    //     sendPacket(PacketType.Sound, (packet) => {
+    //         packet[2] = clampUInt8(sound)
+    //     })
+    // }
 
     //% block="send light $light sound $sound"
     //% inlineInputMode=external
