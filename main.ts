@@ -95,6 +95,7 @@ namespace s4comm {
     //% id.min=0 id.max=255 channel.min=0 channel.max=83 group.min=0 group.max=255 power.min=0 power.max=7
     //% channel.defl=7 group.defl=23 power.defl=7
     //% id.tooltip="Must be unique for each microbit"
+    //% weight=100
     export function initialize(id: number, channel: number = 7, group: number = 23, power: number = 7): void {
         microbitId = clampUInt8(id)
         radio.setFrequencyBand(channel)
@@ -104,56 +105,28 @@ namespace s4comm {
 
     //% block="set microbit id $id"
     //% id.min=0 id.max=255
+    //% weight=90
     export function setMicrobitId(id: number): void {
         microbitId = clampUInt8(id)
     }
 
     //% blockId="s4comm_get_microbit_id"
     //% block="microbit id"
+    //% weight=80
     export function getMicrobitId(): number {
         return microbitId
     }
 
     //% block="on master poll"
+    //% weight=70
     export function onMasterPoll(handler: () => void): void {
         _pollHandler = handler
         _hasPollHandler = true
     }
 
-    //% block="send string text $text"
-    export function sendString(text: string): void {
-        sendPacket(PacketType.String, (packet) => {
-            writeAscii(packet, 2, text || "", 17)
-        })
-    }
-
-    //% block="send pressure $pressure"
-    export function sendPressure(pressure: number): void {
-        sendPacket(PacketType.Pressure, (packet) => {
-            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
-        })
-    }
-
-    //% block="send light $light sound $sound"
-    //% inlineInputMode=external
-    export function sendLightSound(light: number, sound: number): void {
-        sendPacket(PacketType.LightSound, (packet) => {
-            packet[2] = clampUInt8(light)
-            packet[3] = clampUInt8(sound)
-        })
-    }
-
-    //% block="send atmosphere pressure $pressure temp $temp"
-    //% inlineInputMode=external
-    export function sendAtmosphere(pressure: number, temp: number): void {
-        sendPacket(PacketType.Atmosphere, (packet) => {
-            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
-            packet.setNumber(NumberFormat.Int8LE, 6, clampInt8(temp))
-        })
-    }
-
     //% block="send environment pressure $pressure temp $temp light $light sound $sound"
     //% inlineInputMode=external
+    //% weight=60
     export function sendEnvironment(pressure: number, temp: number, light: number, sound: number): void {
         sendPacket(PacketType.Environment, (packet) => {
             packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
@@ -163,8 +136,19 @@ namespace s4comm {
         })
     }
 
+    //% block="send atmosphere pressure $pressure temp $temp"
+    //% inlineInputMode=external
+    //% weight=50
+    export function sendAtmosphere(pressure: number, temp: number): void {
+        sendPacket(PacketType.Atmosphere, (packet) => {
+            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
+            packet.setNumber(NumberFormat.Int8LE, 6, clampInt8(temp))
+        })
+    }
+
     //% block="send acceleration x $accelX y $accelY z $accelZ"
     //% inlineInputMode=external
+    //% weight=40
     export function sendAcceleration(accelX: number, accelY: number, accelZ: number): void {
         sendPacket(PacketType.Acceleration, (packet) => {
             packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
@@ -174,16 +158,44 @@ namespace s4comm {
     }
 
     //% block="send acceleration strength $strength"
+    //% weight=35
     export function sendStrength(strength: number): void {
         sendPacket(PacketType.Strength, (packet) => {
             packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(strength))
         })
     }
 
+    //% block="send pressure $pressure"
+    //% weight=30
+    export function sendPressure(pressure: number): void {
+        sendPacket(PacketType.Pressure, (packet) => {
+            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
+        })
+    }
+
+    //% block="send light $light sound $sound"
+    //% inlineInputMode=external
+    //% weight=20
+    export function sendLightSound(light: number, sound: number): void {
+        sendPacket(PacketType.LightSound, (packet) => {
+            packet[2] = clampUInt8(light)
+            packet[3] = clampUInt8(sound)
+        })
+    }
+
     //% block="send int $value"
+    //% weight=15
     export function sendInt(value: number): void {
         sendPacket(PacketType.Int, (packet) => {
             packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(value))
+        })
+    }
+
+    //% block="send string text $text"
+    //% weight=10
+    export function sendString(text: string): void {
+        sendPacket(PacketType.String, (packet) => {
+            writeAscii(packet, 2, text || "", 17)
         })
     }
 }
