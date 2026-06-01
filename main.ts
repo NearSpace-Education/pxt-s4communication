@@ -12,7 +12,8 @@ namespace s4comm {
         Environment = 11,
         Acceleration = 12,
         Strength = 13,
-        Int = 14
+        Int = 14,
+        AccelerationFull = 15
     }
 
     let microbitId = 1
@@ -154,6 +155,18 @@ namespace s4comm {
             packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
             packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(accelY))
             packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(accelZ))
+        })
+    }
+
+    //% block="send acceleration x $accelX y $accelY z $accelZ strength $strength"
+    //% inlineInputMode=external
+    //% weight=38
+    export function sendAccelerationFull(accelX: number, accelY: number, accelZ: number, strength: number): void {
+        sendPacket(PacketType.AccelerationFull, (packet) => {
+            packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
+            packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(accelY))
+            packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(accelZ))
+            packet.setNumber(NumberFormat.Int16BE, 8, clampInt16(strength))
         })
     }
 
