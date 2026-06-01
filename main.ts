@@ -13,7 +13,10 @@ namespace s4comm {
         Acceleration = 12,
         Strength = 13,
         Int = 14,
-        AccelerationFull = 15
+        AccelerationFull = 15,
+        Temperature = 16,
+        Light = 17,
+        Sound = 18
     }
 
     let microbitId = 1
@@ -183,6 +186,30 @@ namespace s4comm {
     export function sendPressure(pressure: number): void {
         sendPacket(PacketType.Pressure, (packet) => {
             packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
+        })
+    }
+
+    //% block="send temperature $temp"
+    //% weight=29
+    export function sendTemp(temp: number): void {
+        sendPacket(PacketType.Temperature, (packet) => {
+            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(temp))
+        })
+    }
+
+    //% block="send light $light"
+    //% weight=28
+    export function sendLight(light: number): void {
+        sendPacket(PacketType.Light, (packet) => {
+            packet[2] = clampUInt8(light)
+        })
+    }
+
+    //% block="send sound $sound"
+    //% weight=27
+    export function sendSound(sound: number): void {
+        sendPacket(PacketType.Sound, (packet) => {
+            packet[2] = clampUInt8(sound)
         })
     }
 
