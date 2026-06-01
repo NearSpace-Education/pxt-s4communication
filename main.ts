@@ -16,7 +16,8 @@ namespace s4comm {
         AccelerationFull = 15,
         Temperature = 16,
         Light = 17,
-        Sound = 18
+        Sound = 18,
+        Custom = 19
     }
 
     let microbitId = 1
@@ -28,6 +29,13 @@ namespace s4comm {
     let respondingToPoll = false
     let _pollHandler: () => void = function () { }
     let _hasPollHandler = false
+
+    let _inCustomPacket = false
+    let _customFmtHi = 0
+    let _customFmtLo = 0
+    let _customData: Buffer = null
+    let _customDataLen = 0
+    let _customFieldCount = 0
 
     // Handlers at namespace level so they register at program start.
     // Master sends MakeCode-framed strings using send_mk_string() in Python.
@@ -84,6 +92,18 @@ namespace s4comm {
             }
             buf[offset + i] = code
         }
+    }
+
+    function customAddField(typeCode: number, byteSize: number, writer: (buf: Buffer, offset: number) => void): void {
+        if (!_inCustomPacket || _customFieldCount >= 4 || _customDataLen + byteSize > 15) return
+        if (_customFieldCount < 2) {
+            _customFmtHi |= (typeCode & 0xF) << (4 - _customFieldCount * 4)
+        } else {
+            _customFmtLo |= (typeCode & 0xF) << (4 - (_customFieldCount - 2) * 4)
+        }
+        writer(_customData, _customDataLen)
+        _customDataLen += byteSize
+        _customFieldCount++
     }
 
     function sendPacket(packetType: PacketType, payloadWriter: (packet: Buffer) => void): void {
@@ -229,6 +249,56 @@ namespace s4comm {
         sendPacket(PacketType.Int, (packet) => {
             packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(value))
         })
+    }
+
+    //% block="send custom packet"
+    //% weight=5
+    export function sendCustomPacket(body: () => void): void {
+        _inCustomPacket = true
+        _customFmtHi = 0
+        _customFmtLo = 0
+        _customData = pins.createBuffer(15)
+        _customDataLen = 0
+        _customFieldCount = 0
+        body()
+        _inCustomPacket = false
+        sendPacket(PacketType.Custom, (packet) => {
+            packet[2] = _customFmtHi
+            packet[3] = _customFmtLo
+            for (let i = 0; i < _customDataLen; i++) {
+                packet[4 + i] = _customData[i]
+            }
+        })
+    }
+
+    //% block="field temperature $value"
+    export function customFieldTemperature(value: number): void {
+        customAddField(0x1, 1, (buf, off) => { buf[off] = clampInt8(value) & 0xFF })
+    }
+
+    //% block="field pressure $value"
+    export function customFieldPressure(value: number): void {
+        customAddField(0x2, 4, (buf, off) => { buf.setNumber(NumberFormat.Int32BE, off, clampInt32(value)) })
+    }
+
+    //% block="field light $value"
+    export function customFieldLight(value: number): void {
+        customAddField(0x3, 1, (buf, off) => { buf[off] = clampUInt8(value) })
+    }
+
+    //% block="field sound $value"
+    export function customFieldSound(value: number): void {
+        customAddField(0x4, 1, (buf, off) => { buf[off] = clampUInt8(value) })
+    }
+
+    //% block="field strength $value"
+    export function customFieldStrength(value: number): void {
+        customAddField(0x5, 2, (buf, off) => { buf.setNumber(NumberFormat.Int16BE, off, clampInt16(value)) })
+    }
+
+    //% block="field int $value"
+    export function customFieldInt(value: number): void {
+        customAddField(0x6, 4, (buf, off) => { buf.setNumber(NumberFormat.Int32BE, off, clampInt32(value)) })
     }
 
     //% block="send string text $text"
