@@ -30,13 +30,6 @@ namespace s4comm {
     let _pollHandler: () => void = function () { }
     let _hasPollHandler = false
 
-    let _inCustomPacket = false
-    let _customFmtHi = 0
-    let _customFmtLo = 0
-    let _customData: Buffer = null
-    let _customDataLen = 0
-    let _customFieldCount = 0
-
     // Handlers at namespace level so they register at program start.
     // Master sends MakeCode-framed strings using send_mk_string() in Python.
     radio.onReceivedString(function (str: string) {
@@ -92,18 +85,6 @@ namespace s4comm {
             }
             buf[offset + i] = code
         }
-    }
-
-    function customAddField(typeCode: number, byteSize: number, writer: (buf: Buffer, offset: number) => void): void {
-        if (!_inCustomPacket || _customFieldCount >= 4 || _customDataLen + byteSize > 15) return
-        if (_customFieldCount < 2) {
-            _customFmtHi |= (typeCode & 0xF) << (4 - _customFieldCount * 4)
-        } else {
-            _customFmtLo |= (typeCode & 0xF) << (4 - (_customFieldCount - 2) * 4)
-        }
-        writer(_customData, _customDataLen)
-        _customDataLen += byteSize
-        _customFieldCount++
     }
 
     function sendPacket(packetType: PacketType, payloadWriter: (packet: Buffer) => void): void {
@@ -196,7 +177,6 @@ namespace s4comm {
     //% block="send acceleration strength $strength"
     //% weight=35
     export function sendStrength(strength: number): void {
-        if (_inCustomPacket) { customAddField(0x5, 2, (buf, off) => { buf.setNumber(NumberFormat.Int16BE, off, clampInt16(strength)) }); return }
         sendPacket(PacketType.Strength, (packet) => {
             packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(strength))
         })
@@ -205,7 +185,6 @@ namespace s4comm {
     //% block="send pressure $pressure"
     //% weight=30
     export function sendPressure(pressure: number): void {
-        if (_inCustomPacket) { customAddField(0x2, 4, (buf, off) => { buf.setNumber(NumberFormat.Int32BE, off, clampInt32(pressure)) }); return }
         sendPacket(PacketType.Pressure, (packet) => {
             packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
         })
@@ -214,7 +193,6 @@ namespace s4comm {
     //% block="send temperature $temp"
     //% weight=29
     export function sendTemp(temp: number): void {
-        if (_inCustomPacket) { customAddField(0x1, 1, (buf, off) => { buf[off] = clampInt8(temp) & 0xFF }); return }
         sendPacket(PacketType.Temperature, (packet) => {
             packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(temp))
         })
@@ -223,7 +201,6 @@ namespace s4comm {
     //% block="send light $light"
     //% weight=28
     export function sendLight(light: number): void {
-        if (_inCustomPacket) { customAddField(0x3, 1, (buf, off) => { buf[off] = clampUInt8(light) }); return }
         sendPacket(PacketType.Light, (packet) => {
             packet[2] = clampUInt8(light)
         })
@@ -232,7 +209,6 @@ namespace s4comm {
     //% block="send sound $sound"
     //% weight=27
     export function sendSound(sound: number): void {
-        if (_inCustomPacket) { customAddField(0x4, 1, (buf, off) => { buf[off] = clampUInt8(sound) }); return }
         sendPacket(PacketType.Sound, (packet) => {
             packet[2] = clampUInt8(sound)
         })
@@ -251,30 +227,69 @@ namespace s4comm {
     //% block="send int $value"
     //% weight=15
     export function sendInt(value: number): void {
-        if (_inCustomPacket) { customAddField(0x6, 4, (buf, off) => { buf.setNumber(NumberFormat.Int32BE, off, clampInt32(value)) }); return }
         sendPacket(PacketType.Int, (packet) => {
             packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(value))
         })
     }
 
-    //% block="send custom packet"
+    export enum CustomField {
+        //% block="none"
+        None = 0,
+        //% block="temperature"
+        Temperature = 1,
+        //% block="pressure"
+        Pressure = 2,
+        //% block="light"
+        Light = 3,
+        //% block="sound"
+        Sound = 4,
+        //% block="strength"
+        Strength = 5,
+        //% block="int"
+        Int = 6
+    }
+
+    //% block="send custom packet|1: $type1 $val1|2: $type2 $val2|3: $type3 $val3|4: $type4 $val4"
     //% weight=5
-    //% handlerStatement=1
-    export function sendCustomPacket(body: () => void): void {
-        _inCustomPacket = true
-        _customFmtHi = 0
-        _customFmtLo = 0
-        _customData = pins.createBuffer(15)
-        _customDataLen = 0
-        _customFieldCount = 0
-        body()
-        _inCustomPacket = false
+    export function sendCustomPacket(
+        type1: CustomField, val1: number,
+        type2: CustomField, val2: number,
+        type3: CustomField, val3: number,
+        type4: CustomField, val4: number
+    ): void {
         sendPacket(PacketType.Custom, (packet) => {
-            packet[2] = _customFmtHi
-            packet[3] = _customFmtLo
-            for (let i = 0; i < _customDataLen; i++) {
-                packet[4 + i] = _customData[i]
+            const slotTypes = [type1, type2, type3, type4]
+            const slotVals = [val1, val2, val3, val4]
+            let fmtHi = 0
+            let fmtLo = 0
+            let dataOffset = 4
+            let fieldIdx = 0
+            for (let i = 0; i < 4; i++) {
+                const t = slotTypes[i]
+                if (t == CustomField.None) continue
+                if (fieldIdx < 2) {
+                    fmtHi |= (t & 0xF) << (4 - fieldIdx * 4)
+                } else {
+                    fmtLo |= (t & 0xF) << (4 - (fieldIdx - 2) * 4)
+                }
+                const v = slotVals[i]
+                if (t == CustomField.Temperature) {
+                    packet[dataOffset] = clampInt8(v) & 0xFF
+                    dataOffset += 1
+                } else if (t == CustomField.Pressure || t == CustomField.Int) {
+                    packet.setNumber(NumberFormat.Int32BE, dataOffset, clampInt32(v))
+                    dataOffset += 4
+                } else if (t == CustomField.Light || t == CustomField.Sound) {
+                    packet[dataOffset] = clampUInt8(v)
+                    dataOffset += 1
+                } else if (t == CustomField.Strength) {
+                    packet.setNumber(NumberFormat.Int16BE, dataOffset, clampInt16(v))
+                    dataOffset += 2
+                }
+                fieldIdx++
             }
+            packet[2] = fmtHi
+            packet[3] = fmtLo
         })
     }
 
