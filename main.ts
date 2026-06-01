@@ -152,7 +152,7 @@ namespace s4comm {
 
     //% block="send acceleration x $accelX y $accelY z $accelZ"
     //% inlineInputMode=external
-    //% weight=40
+    //% weight=38
     export function sendAcceleration(accelX: number, accelY: number, accelZ: number): void {
         sendPacket(PacketType.Acceleration, (packet) => {
             packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
@@ -161,9 +161,9 @@ namespace s4comm {
         })
     }
 
-    //% block="send acceleration x $accelX y $accelY z $accelZ strength $strength"
+    //% block="send gravity x $accelX y $accelY z $accelZ strength $strength"
     //% inlineInputMode=external
-    //% weight=38
+    //% weight=40
     export function sendAccelerationFull(accelX: number, accelY: number, accelZ: number, strength: number): void {
         sendPacket(PacketType.AccelerationFull, (packet) => {
             packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
@@ -215,7 +215,7 @@ namespace s4comm {
 
     //% block="send light $light sound $sound"
     //% inlineInputMode=external
-    //% weight=20
+    //% weight=45
     export function sendLightSound(light: number, sound: number): void {
         sendPacket(PacketType.LightSound, (packet) => {
             packet[2] = clampUInt8(light)
