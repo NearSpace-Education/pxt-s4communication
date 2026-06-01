@@ -259,6 +259,7 @@ namespace s4comm {
 
     //% block="send custom packet"
     //% weight=5
+    //% handlerStatement=1
     export function sendCustomPacket(body: () => void): void {
         _inCustomPacket = true
         _customFmtHi = 0
