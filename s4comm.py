@@ -24,11 +24,9 @@ class s4comm():
     """data members"""
     microbit_id = 0x01  # CHANGE THIS: must be unique per slave (0x01-0xFE)
     id = 0xff
-    interval = 5000 #mim interval to prevent spamming
     default_group = 23
     default_channel = 7
     default_power = 7
-    interval_time = running_time()
 
     # Pull protocol constants - must match bitMaster_nonblocking.py
     CTRL_MAGIC = 0xAA   # marks a control (non-data) radio packet
@@ -43,54 +41,11 @@ class s4comm():
         self.id = payloadID
         if microbitID is not None:
             self.microbit_id = microbitID & 0xFF
-        self.interval_time = running_time()
         radio.config(channel = self.default_channel, group = self.default_group, power = self.default_power)
         radio.on()
 
     def setMicrobitID(self, microbitID):
         self.microbit_id = microbitID & 0xFF
-
-    #send a data packet to the master:bit to compile and send to the S4 for downlink
-    def sendMaster(self, packType, *args):
-        if running_time() - self.interval_time >= self.interval:
-            radio.send_bytes(self._constructPacket(packType, *args))
-            self.interval_time = running_time()
-            display.show(Image.HAPPY)
-            sleep(1000)
-            display.clear()
-    
-    # Convenience methods using PacketType enum
-    def sendBasic(self, temp, data1, data2):
-        """Send Basic packet: int8, int32, int32"""
-        self.sendMaster(PacketType.BASIC, temp, data1, data2)
-    
-    def sendFlexBasic(self, int8_val, short1, short2, int32_val):
-        """Send FlexBasic packet: int8, int16, int16, int32"""
-        self.sendMaster(PacketType.FLEX_BASIC, int8_val, short1, short2, int32_val)
-    
-    def sendExtendedBasic(self, int8_val, short1, short2, short3, short4):
-        """Send ExtendedBasic packet: int8, int16, int16, int16, int16"""
-        self.sendMaster(PacketType.EXTENDED_BASIC, int8_val, short1, short2, short3, short4)
-    
-    def sendFloat(self, int8_val, float1, float2):
-        """Send Float packet: int8, float32, float32"""
-        self.sendMaster(PacketType.FLOAT, int8_val, float1, float2)
-    
-    def sendBalanced(self, int8_val, int32_val, float32_val):
-        """Send Balanced packet: int8, int32, float32"""
-        self.sendMaster(PacketType.BALANCED, int8_val, int32_val, float32_val)
-    
-    def sendBetterBalance(self, int8_val, short1, short2, float32_val):
-        """Send BetterBalance packet: int8, int16, int16, float32"""
-        self.sendMaster(PacketType.BETTER_BALANCE, int8_val, short1, short2, float32_val)
-    
-    def sendSilly(self, float32_val, text):
-        """Send Silly packet: float32, char×5"""
-        self.sendMaster(PacketType.SILLY, float32_val, text)
-    
-    def sendString(self, text):
-        """Send String packet: char×9"""
-        self.sendMaster(PacketType.STRING, text)
 
     def handleMasterMessage(self, packType, sensorFunc):
         """

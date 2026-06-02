@@ -1,24 +1,26 @@
 /**
  * S4 communication helpers for MakeCode.
- * Packet format is 11 bytes:
- * [0] microbit_id, [1] packed team/type id, [2..10] payload.
+ * Packet format is 19 bytes:
+ * [0] microbit_id, [1] packet type, [2..18] payload.
  */
 namespace s4comm {
     export enum PacketType {
-        Basic = 0,
-        FlexBasic = 1,
-        ExtendedBasic = 2,
-        Float = 3,
-        Balanced = 4,
-        BetterBalance = 5,
-        Silly = 6,
         String = 7,
-        Pressure = 8
+        //Pressure = 8,
+        LightSound = 9,
+        Atmosphere = 10,
+        Environment = 11,
+        // Acceleration = 12,
+        //Strength = 13,
+        Int = 14,
+        AccelerationFull = 15,
+        //Temperature = 16,
+        //Light = 17,
+       // Sound = 18,
+        Custom = 19
     }
 
     let microbitId = 1
-    let sendIntervalMs = 5000
-    let lastSendMs = -5000
 
     const CTRL_MAGIC = 0xAA
     const CMD_DISCOVER = 0xD0
@@ -60,7 +62,9 @@ namespace s4comm {
     }
 
     function clampUInt8(v: number): number {
-        return v & 0xff
+        if (v < 0) return 0
+        if (v > 255) return 255
+        return v
     }
 
     function clampInt32(v: number): number {
@@ -83,28 +87,22 @@ namespace s4comm {
         }
     }
 
-    function canSendNow(): boolean {
-        if (respondingToPoll) return true
-        return input.runningTime() - lastSendMs >= sendIntervalMs
-    }
-
     function sendPacket(packetType: PacketType, payloadWriter: (packet: Buffer) => void): void {
-        if (!canSendNow()) return
-        const packet = pins.createBuffer(11)
+        if (!respondingToPoll) return
+        const packet = pins.createBuffer(19)
         packet[0] = microbitId
         packet[1] = packedId(packetType)
         payloadWriter(packet)
         radio.sendBuffer(packet)
-        lastSendMs = input.runningTime()
     }
 
-    //% block="initialize S4 comm microbit id $id channel $channel group $group power $power interval ms $interval"
-    //% id.min=0 id.max=255 channel.min=0 channel.max=83 group.min=0 group.max=255 power.min=0 power.max=7 interval.min=0
-    //% channel.defl=7 group.defl=23 power.defl=7 interval.defl=5000
+    //% block="initialize S4 comm microbit id $id channel $channel group $group power $power"
+    //% id.min=0 id.max=255 channel.min=0 channel.max=83 group.min=0 group.max=255 power.min=0 power.max=7
+    //% channel.defl=7 group.defl=23 power.defl=7
     //% id.tooltip="Must be unique for each microbit"
-    export function initialize(id: number, channel: number = 7, group: number = 23, power: number = 7, interval: number = 5000): void {
+    //% weight=100
+    export function initialize(id: number, channel: number = 7, group: number = 23, power: number = 7): void {
         microbitId = clampUInt8(id)
-        sendIntervalMs = Math.max(0, interval)
         radio.setFrequencyBand(channel)
         radio.setGroup(group)
         radio.setTransmitPower(power)
@@ -112,105 +110,194 @@ namespace s4comm {
 
     //% block="set microbit id $id"
     //% id.min=0 id.max=255
+    //% weight=90
     export function setMicrobitId(id: number): void {
         microbitId = clampUInt8(id)
     }
 
     //% blockId="s4comm_get_microbit_id"
     //% block="microbit id"
+    //% weight=80
     export function getMicrobitId(): number {
         return microbitId
     }
 
-    //% block="set send interval ms $interval"
-    //% interval.min=0
-    export function setSendInterval(interval: number): void {
-        sendIntervalMs = Math.max(0, interval)
-    }
-
     //% block="on master poll"
+    //% weight=70
     export function onMasterPoll(handler: () => void): void {
         _pollHandler = handler
         _hasPollHandler = true
     }
 
-    //% block="send basic temp $temp data1 $data1 data2 $data2"
-    export function sendBasic(temp: number, data1: number, data2: number): void {
-        sendPacket(PacketType.Basic, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(temp))
-            packet.setNumber(NumberFormat.Int32BE, 3, clampInt32(data1))
-            packet.setNumber(NumberFormat.Int32BE, 7, clampInt32(data2))
+    //% block="send environment pressure $pressure temp $temp light $light sound $sound"
+    //% inlineInputMode=external
+    //% weight=60
+    export function sendEnvironment(pressure: number, temp: number, light: number, sound: number): void {
+        sendPacket(PacketType.Environment, (packet) => {
+            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
+            packet.setNumber(NumberFormat.Int8LE, 6, clampInt8(temp))
+            packet[7] = clampUInt8(light)
+            packet[8] = clampUInt8(sound)
         })
     }
 
-    //% block="send flex basic int8 $int8Value short1 $short1 short2 $short2 int32 $int32Value"
-    export function sendFlexBasic(int8Value: number, short1: number, short2: number, int32Value: number): void {
-        sendPacket(PacketType.FlexBasic, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
-            packet.setNumber(NumberFormat.Int16BE, 3, clampInt16(short1))
-            packet.setNumber(NumberFormat.Int16BE, 5, clampInt16(short2))
-            packet.setNumber(NumberFormat.Int32BE, 7, clampInt32(int32Value))
+    //% block="send atmosphere pressure $pressure temp $temp"
+    //% inlineInputMode=external
+    //% weight=50
+    export function sendAtmosphere(pressure: number, temp: number): void {
+        sendPacket(PacketType.Atmosphere, (packet) => {
+            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
+            packet.setNumber(NumberFormat.Int8LE, 6, clampInt8(temp))
         })
     }
 
-    //% block="send extended basic int8 $int8Value short1 $short1 short2 $short2 short3 $short3 short4 $short4"
-    export function sendExtendedBasic(int8Value: number, short1: number, short2: number, short3: number, short4: number): void {
-        sendPacket(PacketType.ExtendedBasic, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
-            packet.setNumber(NumberFormat.Int16BE, 3, clampInt16(short1))
-            packet.setNumber(NumberFormat.Int16BE, 5, clampInt16(short2))
-            packet.setNumber(NumberFormat.Int16BE, 7, clampInt16(short3))
-            packet.setNumber(NumberFormat.Int16BE, 9, clampInt16(short4))
+    // //% block="send acceleration x $accelX y $accelY z $accelZ"
+    // //% inlineInputMode=external
+    // //% weight=38
+    // export function sendAcceleration(accelX: number, accelY: number, accelZ: number): void {
+    //     sendPacket(PacketType.Acceleration, (packet) => {
+    //         packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
+    //         packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(accelY))
+    //         packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(accelZ))
+    //     })
+    // }
+
+    //% block="send acceleration x $accelX y $accelY z $accelZ strength $strength"
+    //% inlineInputMode=external
+    //% weight=40
+    export function sendAccelerationFull(accelX: number, accelY: number, accelZ: number, strength: number): void {
+        sendPacket(PacketType.AccelerationFull, (packet) => {
+            packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(accelX))
+            packet.setNumber(NumberFormat.Int16BE, 4, clampInt16(accelY))
+            packet.setNumber(NumberFormat.Int16BE, 6, clampInt16(accelZ))
+            packet.setNumber(NumberFormat.Int16BE, 8, clampInt16(strength))
         })
     }
 
-    //% block="send float int8 $int8Value float1 $float1 float2 $float2"
-    export function sendFloat(int8Value: number, float1: number, float2: number): void {
-        sendPacket(PacketType.Float, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
-            packet.setNumber(NumberFormat.Float32BE, 3, float1)
-            packet.setNumber(NumberFormat.Float32BE, 7, float2)
+    // //% block="send acceleration strength $strength"
+    // //% weight=35
+    // export function sendStrength(strength: number): void {
+    //     sendPacket(PacketType.Strength, (packet) => {
+    //         packet.setNumber(NumberFormat.Int16BE, 2, clampInt16(strength))
+    //     })
+    // }
+
+    // //% block="send pressure $pressure"
+    // //% weight=30
+    // export function sendPressure(pressure: number): void {
+    //     sendPacket(PacketType.Pressure, (packet) => {
+    //         packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
+    //     })
+    // }
+
+    // //% block="send temperature $temp"
+    // //% weight=29
+    // export function sendTemp(temp: number): void {
+    //     sendPacket(PacketType.Temperature, (packet) => {
+    //         packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(temp))
+    //     })
+    // }
+
+    // //% block="send light $light"
+    // //% weight=28
+    // export function sendLight(light: number): void {
+    //     sendPacket(PacketType.Light, (packet) => {
+    //         packet[2] = clampUInt8(light)
+    //     })
+    // }
+
+    // //% block="send sound $sound"
+    // //% weight=27
+    // export function sendSound(sound: number): void {
+    //     sendPacket(PacketType.Sound, (packet) => {
+    //         packet[2] = clampUInt8(sound)
+    //     })
+    // }
+
+    //% block="send light $light sound $sound"
+    //% inlineInputMode=external
+    //% weight=45
+    export function sendLightSound(light: number, sound: number): void {
+        sendPacket(PacketType.LightSound, (packet) => {
+            packet[2] = clampUInt8(light)
+            packet[3] = clampUInt8(sound)
         })
     }
 
-    //% block="send balanced int8 $int8Value int32 $int32Value float32 $float32Value"
-    export function sendBalanced(int8Value: number, int32Value: number, float32Value: number): void {
-        sendPacket(PacketType.Balanced, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
-            packet.setNumber(NumberFormat.Int32BE, 3, clampInt32(int32Value))
-            packet.setNumber(NumberFormat.Float32BE, 7, float32Value)
+    //% block="send int $value"
+    //% weight=15
+    export function sendInt(value: number): void {
+        sendPacket(PacketType.Int, (packet) => {
+            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(value))
         })
     }
 
-    //% block="send better balance int8 $int8Value short1 $short1 short2 $short2 float32 $float32Value"
-    export function sendBetterBalance(int8Value: number, short1: number, short2: number, float32Value: number): void {
-        sendPacket(PacketType.BetterBalance, (packet) => {
-            packet.setNumber(NumberFormat.Int8LE, 2, clampInt8(int8Value))
-            packet.setNumber(NumberFormat.Int16BE, 3, clampInt16(short1))
-            packet.setNumber(NumberFormat.Int16BE, 5, clampInt16(short2))
-            packet.setNumber(NumberFormat.Float32BE, 7, float32Value)
-        })
+    export enum CustomField {
+        //% block="none"
+        None = 0,
+        //% block="temperature"
+        Temperature = 1,
+        //% block="pressure"
+        Pressure = 2,
+        //% block="light"
+        Light = 3,
+        //% block="sound"
+        Sound = 4,
+        //% block="strength"
+        Strength = 5,
+        //% block="int"
+        Int = 6
     }
 
-    //% block="send silly float32 $float32Value text $text"
-    export function sendSilly(float32Value: number, text: string): void {
-        sendPacket(PacketType.Silly, (packet) => {
-            packet.setNumber(NumberFormat.Float32BE, 2, float32Value)
-            writeAscii(packet, 6, text || "", 5)
+    //% block="send custom packet|1: $type1 $val1|2: $type2 $val2|3: $type3 $val3|4: $type4 $val4"
+    //% weight=5
+    export function sendCustomPacket(
+        type1: CustomField, val1: number,
+        type2: CustomField, val2: number,
+        type3: CustomField, val3: number,
+        type4: CustomField, val4: number
+    ): void {
+        sendPacket(PacketType.Custom, (packet) => {
+            const slotTypes = [type1, type2, type3, type4]
+            const slotVals = [val1, val2, val3, val4]
+            let fmtHi = 0
+            let fmtLo = 0
+            let dataOffset = 4
+            let fieldIdx = 0
+            for (let i = 0; i < 4; i++) {
+                const t = slotTypes[i]
+                if (t == CustomField.None) continue
+                if (fieldIdx < 2) {
+                    fmtHi |= (t & 0xF) << (4 - fieldIdx * 4)
+                } else {
+                    fmtLo |= (t & 0xF) << (4 - (fieldIdx - 2) * 4)
+                }
+                const v = slotVals[i]
+                if (t == CustomField.Temperature) {
+                    packet[dataOffset] = clampInt8(v) & 0xFF
+                    dataOffset += 1
+                } else if (t == CustomField.Pressure || t == CustomField.Int) {
+                    packet.setNumber(NumberFormat.Int32BE, dataOffset, clampInt32(v))
+                    dataOffset += 4
+                } else if (t == CustomField.Light || t == CustomField.Sound) {
+                    packet[dataOffset] = clampUInt8(v)
+                    dataOffset += 1
+                } else if (t == CustomField.Strength) {
+                    packet.setNumber(NumberFormat.Int16BE, dataOffset, clampInt16(v))
+                    dataOffset += 2
+                }
+                fieldIdx++
+            }
+            packet[2] = fmtHi
+            packet[3] = fmtLo
         })
     }
 
     //% block="send string text $text"
+    //% weight=10
     export function sendString(text: string): void {
         sendPacket(PacketType.String, (packet) => {
-            writeAscii(packet, 2, text || "", 9)
-        })
-    }
-
-    //% block="send pressure $pressure"
-    export function sendPressure(pressure: number): void {
-        sendPacket(PacketType.Pressure, (packet) => {
-            packet.setNumber(NumberFormat.Int32BE, 2, clampInt32(pressure))
+            writeAscii(packet, 2, text || "", 17)
         })
     }
 }
@@ -279,25 +366,48 @@ namespace BME280 {
         return pins.i2cReadNumber(BME280_I2C_ADDR, NumberFormat.Int16LE);
     }
 
-    let dig_T1 = getUInt16LE(0x88)
-    let dig_T2 = getInt16LE(0x8A)
-    let dig_T3 = getInt16LE(0x8C)
-    let dig_P1 = getUInt16LE(0x8E)
-    let dig_P2 = getInt16LE(0x90)
-    let dig_P3 = getInt16LE(0x92)
-    let dig_P4 = getInt16LE(0x94)
-    let dig_P5 = getInt16LE(0x96)
-    let dig_P6 = getInt16LE(0x98)
-    let dig_P7 = getInt16LE(0x9A)
-    let dig_P8 = getInt16LE(0x9C)
-    let dig_P9 = getInt16LE(0x9E)
-    let dig_H1 = getreg(0xA1)
-    let dig_H2 = getInt16LE(0xE1)
-    let dig_H3 = getreg(0xE3)
-    let a = getreg(0xE5)
-    let dig_H4 = (getreg(0xE4) << 4) + (a % 16)
-    let dig_H5 = (getreg(0xE6) << 4) + (a >> 4)
-    let dig_H6 = getInt8LE(0xE7)
+    let dig_T1 = 0
+    let dig_T2 = 0
+    let dig_T3 = 0
+    let dig_P1 = 0
+    let dig_P2 = 0
+    let dig_P3 = 0
+    let dig_P4 = 0
+    let dig_P5 = 0
+    let dig_P6 = 0
+    let dig_P7 = 0
+    let dig_P8 = 0
+    let dig_P9 = 0
+    let dig_H1 = 0
+    let dig_H2 = 0
+    let dig_H3 = 0
+    let dig_H4 = 0
+    let dig_H5 = 0
+    let dig_H6 = 0
+
+    function readCalibration(): void {
+        dig_T1 = getUInt16LE(0x88)
+        dig_T2 = getInt16LE(0x8A)
+        dig_T3 = getInt16LE(0x8C)
+        dig_P1 = getUInt16LE(0x8E)
+        dig_P2 = getInt16LE(0x90)
+        dig_P3 = getInt16LE(0x92)
+        dig_P4 = getInt16LE(0x94)
+        dig_P5 = getInt16LE(0x96)
+        dig_P6 = getInt16LE(0x98)
+        dig_P7 = getInt16LE(0x9A)
+        dig_P8 = getInt16LE(0x9C)
+        dig_P9 = getInt16LE(0x9E)
+        dig_H1 = getreg(0xA1)
+        dig_H2 = getInt16LE(0xE1)
+        dig_H3 = getreg(0xE3)
+        let a = getreg(0xE5)
+        dig_H4 = (getreg(0xE4) << 4) + (a % 16)
+        dig_H5 = (getreg(0xE6) << 4) + (a >> 4)
+        dig_H6 = getInt8LE(0xE7)
+    }
+
+    readCalibration()
     setreg(0xF2, 0x04)
     setreg(0xF4, 0x2F)
     setreg(0xF5, 0x0C)
@@ -310,7 +420,7 @@ namespace BME280 {
         let var1 = (((adc_T >> 3) - (dig_T1 << 1)) * dig_T2) >> 11
         let var2 = (((((adc_T >> 4) - dig_T1) * ((adc_T >> 4) - dig_T1)) >> 12) * dig_T3) >> 14
         let t = var1 + var2
-        T = Math.idiv((t * 5 + 128) >> 8, 100)
+        let tVal = Math.idiv((t * 5 + 128) >> 8, 100)
         var1 = (t >> 1) - 64000
         var2 = (((var1 >> 2) * (var1 >> 2)) >> 11) * dig_P6
         var2 = var2 + ((var1 * dig_P5) << 1)
@@ -319,6 +429,7 @@ namespace BME280 {
         var1 = ((32768 + var1) * dig_P1) >> 15
         if (var1 == 0)
             return; // avoid exception caused by division by zero
+        T = tVal
         let adc_P = (getreg(0xF7) << 12) + (getreg(0xF8) << 4) + (getreg(0xF9) >> 4)
         let _p = ((1048576 - adc_P) - (var2 >> 12)) * 3125
         _p = Math.idiv(_p, var1) * 2;
@@ -498,5 +609,9 @@ namespace BME280 {
     //% weight=20 blockGap=8
     export function Address(addr: BME280_I2C_ADDRESS) {
         BME280_I2C_ADDR = addr
+        readCalibration()
+        setreg(0xF2, 0x04)
+        setreg(0xF4, 0x2F)
+        setreg(0xF5, 0x0C)
     }
 }  
