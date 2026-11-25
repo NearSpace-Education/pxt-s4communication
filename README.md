@@ -77,10 +77,10 @@ The extension also includes a **GY63** block category for the GY-63 barometric p
 | SDA | P20 |
 
 - PS must be high (I2C mode); the module does this on board.
-- CSB low → address `0x77` (default), CSB high → address `0x76`.
+- Leave CSB unconnected (or tie it to GND). The blocks always use I2C address `0x77`; tying CSB to 3V would move the sensor to `0x76` and it would stop responding.
 
 ### Blocks
-- `initialize GY63 at address 0x77` — put in `on start`
+- `initialize GY63` — put in `on start`
 - `GY63 pressure (Pa)`
 - `GY63 temperature (°C)`
 - `GY63 is connected` — check your wiring
@@ -90,7 +90,7 @@ Each reading block takes a fresh measurement (~20 ms) and applies the datasheet'
 ### Example
 ```ts
 s4comm.initialize(1)
-gy63.init(gy63.Address.Addr0x77)
+gy63.init()
 s4comm.onMasterPoll(function () {
     s4comm.sendAtmosphere(gy63.pressure(), gy63.temperature())
 })

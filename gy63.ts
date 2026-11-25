@@ -1,27 +1,20 @@
 /**
  * GY-63 (MS5611) barometric pressure + temperature sensor over I2C.
  * Wiring: VCC->3V, GND->GND, SCL->P19, SDA->P20.
- * I2C address: 0x77 when CSB is low (module default), 0x76 when CSB is high.
+ * I2C address: always 0x77 (CSB low / not connected, the module default).
  *
  * Note: the MS5611 datasheet uses 64-bit integer math. MakeCode bit shifts
  * truncate to 32 bits, so all scaling here uses * and / by powers of two.
  */
 //% color="#2a9d8f" icon="" block="GY63"
 namespace gy63 {
-    export enum Address {
-        //% block="0x77 (default)"
-        Addr0x77 = 0x77,
-        //% block="0x76"
-        Addr0x76 = 0x76
-    }
-
     const CMD_RESET = 0x1E
     const CMD_CONV_D1 = 0x48 // pressure, OSR 4096
     const CMD_CONV_D2 = 0x58 // temperature, OSR 4096
     const CMD_ADC_READ = 0x00
     const CMD_PROM_BASE = 0xA0
 
-    let addr = 0x77
+    const addr = 0x77
     let C: number[] = [0, 0, 0, 0, 0, 0, 0] // C[1..6] used
     let initialized = false
     let lastTempC = 0
@@ -47,7 +40,7 @@ namespace gy63 {
     }
 
     function ensureInit(): void {
-        if (!initialized) init(addr)
+        if (!initialized) init()
     }
 
     /**
@@ -92,11 +85,9 @@ namespace gy63 {
     /**
      * Reset the GY63 and read its calibration data. Put this in "on start".
      */
-    //% block="initialize GY63 at address $address"
-    //% address.defl=gy63.Address.Addr0x77
+    //% block="initialize GY63"
     //% weight=100
-    export function init(address: Address = Address.Addr0x77): void {
-        addr = address
+    export function init(): void {
         cmd(CMD_RESET)
         basic.pause(3)
         readProm()
