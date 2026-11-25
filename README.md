@@ -81,8 +81,8 @@ The extension also includes a **GY63** block category for the GY-63 barometric p
 
 ### Blocks
 - `initialize GY63 at address 0x77` — put in `on start`
-- `GY63 pressure in Pa / hPa / kPa / inHg`
-- `GY63 temperature in °C / °F`
+- `GY63 pressure (Pa)`
+- `GY63 temperature (°C)`
 - `GY63 is connected` — check your wiring
 
 Each reading block takes a fresh measurement (~20 ms) and applies the datasheet's second-order compensation for cold temperatures.
@@ -92,6 +92,6 @@ Each reading block takes a fresh measurement (~20 ms) and applies the datasheet'
 s4comm.initialize(1)
 gy63.init(gy63.Address.Addr0x77)
 s4comm.onMasterPoll(function () {
-    s4comm.sendAtmosphere(gy63.pressure(gy63.PressureUnit.Pa), gy63.temperature(gy63.TempUnit.C))
+    s4comm.sendAtmosphere(gy63.pressure(), gy63.temperature())
 })
 ```

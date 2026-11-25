@@ -15,24 +15,6 @@ namespace gy63 {
         Addr0x76 = 0x76
     }
 
-    export enum PressureUnit {
-        //% block="Pa"
-        Pa,
-        //% block="hPa"
-        hPa,
-        //% block="kPa"
-        kPa,
-        //% block="inHg"
-        inHg
-    }
-
-    export enum TempUnit {
-        //% block="°C"
-        C,
-        //% block="°F"
-        F
-    }
-
     const CMD_RESET = 0x1E
     const CMD_CONV_D1 = 0x48 // pressure, OSR 4096
     const CMD_CONV_D2 = 0x58 // temperature, OSR 4096
@@ -122,28 +104,22 @@ namespace gy63 {
     }
 
     /**
-     * Take a new reading and return the air pressure.
+     * Take a new reading and return the air pressure in Pa.
      */
-    //% block="GY63 pressure in $unit"
+    //% block="GY63 pressure (Pa)"
     //% weight=90
-    export function pressure(unit: PressureUnit = PressureUnit.Pa): number {
+    export function pressure(): number {
         update()
-        switch (unit) {
-            case PressureUnit.hPa: return lastPressurePa / 100
-            case PressureUnit.kPa: return lastPressurePa / 1000
-            case PressureUnit.inHg: return lastPressurePa / 3386.389
-            default: return lastPressurePa
-        }
+        return lastPressurePa
     }
 
     /**
-     * Take a new reading and return the temperature.
+     * Take a new reading and return the temperature in °C.
      */
-    //% block="GY63 temperature in $unit"
+    //% block="GY63 temperature (°C)"
     //% weight=80
-    export function temperature(unit: TempUnit = TempUnit.C): number {
+    export function temperature(): number {
         update()
-        if (unit == TempUnit.F) return lastTempC * 9 / 5 + 32
         return lastTempC
     }
 
