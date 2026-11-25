@@ -63,3 +63,35 @@ In MakeCode for micro:bit:
 2. Use `initialize S4 comm ...` once in `on start`.
 3. Optionally set `microbit id`.
 4. Use any `send ...` block (`basic`, `flex basic`, `extended basic`, `float`, `balanced`, `better balance`, `silly`, `string`).
+
+## GY-63 pressure sensor (MS5611)
+
+The extension also includes a **GY63** block category for the GY-63 barometric pressure/temperature sensor.
+
+### Wiring (I2C)
+| GY-63 | micro:bit |
+|-------|-----------|
+| VCC | 3V |
+| GND | GND |
+| SCL | P19 |
+| SDA | P20 |
+
+- PS must be high (I2C mode); the module does this on board.
+- Leave CSB unconnected (or tie it to GND). The blocks always use I2C address `0x77`; tying CSB to 3V would move the sensor to `0x76` and it would stop responding.
+
+### Blocks
+- `initialize GY63` — put in `on start`
+- `GY63 pressure (Pa)`
+- `GY63 temperature (°C)`
+- `GY63 is connected` — check your wiring
+
+Each reading block takes a fresh measurement (~20 ms) and applies the datasheet's second-order compensation for cold temperatures.
+
+### Example
+```ts
+s4comm.initialize(1)
+gy63.init()
+s4comm.onMasterPoll(function () {
+    s4comm.sendAtmosphere(gy63.pressure(), gy63.temperature())
+})
+```
