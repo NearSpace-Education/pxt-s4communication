@@ -7,7 +7,8 @@
     "core": "*"
   },
   "files": [
-    "main.ts"
+    "main.ts",
+    "gy63.ts"
   ],
   "testFiles": [
     "test.ts"
